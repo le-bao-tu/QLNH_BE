@@ -1,0 +1,47 @@
+using Microsoft.IdentityModel.Tokens;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using System.Text;
+using RestaurantApp.API.Modules.Auth.Models;
+
+namespace RestaurantApp.API.Modules.Auth.Services
+{
+    public class JwtProvider
+    {
+        private readonly IConfiguration _configuration;
+
+        public JwtProvider(IConfiguration configuration)
+        {
+            _configuration = configuration;
+        }
+
+        public string GenerateToken(User user)
+        {
+            var jwtSettings = _configuration.GetSection("Jwt");
+            var keyStr = jwtSettings["Key"]!;
+            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(keyStr));
+            var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+
+            var claims = new List<Claim>
+            {
+                new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
+                new Claim(ClaimTypes.Name, user.Username),
+                new Claim(ClaimTypes.Email, user.Email),
+                new Claim(ClaimTypes.Role, user.Role),
+                new Claim("fullName", user.FullName)
+            };
+
+            var expiry = DateTime.UtcNow.AddMinutes(double.Parse(jwtSettings["ExpiryInMinutes"] ?? "60"));
+
+            var token = new JwtSecurityToken(
+                jwtSettings["Issuer"],
+                jwtSettings["Audience"],
+                claims,
+                expires: expiry,
+                signingCredentials: creds
+            );
+
+            return new JwtSecurityTokenHandler().WriteToken(token);
+        }
+    }
+}

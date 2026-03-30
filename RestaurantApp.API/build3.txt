@@ -1,0 +1,34 @@
+﻿  Determining projects to restore...
+D:\QLNH\Backend\RestaurantApp.API\RestaurantApp.API.csproj : warning NU1903: Package 'AutoMapper' 13.0.1 has a known high severity vulnerability, https://github.com/advisories/GHSA-rvv3-g6hj-g44x
+  All projects are up-to-date for restore.
+D:\QLNH\Backend\RestaurantApp.API\RestaurantApp.API.csproj : warning NU1903: Package 'AutoMapper' 13.0.1 has a known high severity vulnerability, https://github.com/advisories/GHSA-rvv3-g6hj-g44x
+D:\QLNH\Backend\RestaurantApp.API\Modules\Auth\Services\AuthService.cs(23,35): warning CS1998: This async method lacks 'await' operators and will run synchronously. Consider using the 'await' operator to await non-blocking API calls, or 'await Task.Run(...)' to do CPU-bound work on a background thread. [D:\QLNH\Backend\RestaurantApp.API\RestaurantApp.API.csproj]
+D:\QLNH\Backend\RestaurantApp.API\Modules\Restaurant\Services\RestaurantService.cs(33,35): warning CS8601: Possible null reference assignment. [D:\QLNH\Backend\RestaurantApp.API\RestaurantApp.API.csproj]
+D:\QLNH\Backend\RestaurantApp.API\Modules\Restaurant\Services\RestaurantService.cs(34,31): warning CS8601: Possible null reference assignment. [D:\QLNH\Backend\RestaurantApp.API\RestaurantApp.API.csproj]
+D:\QLNH\Backend\RestaurantApp.API\Modules\Restaurant\Services\RestaurantService.cs(35,29): warning CS8601: Possible null reference assignment. [D:\QLNH\Backend\RestaurantApp.API\RestaurantApp.API.csproj]
+D:\QLNH\Backend\RestaurantApp.API\Modules\Restaurant\Services\RestaurantService.cs(36,29): warning CS8601: Possible null reference assignment. [D:\QLNH\Backend\RestaurantApp.API\RestaurantApp.API.csproj]
+D:\QLNH\Backend\RestaurantApp.API\Modules\Restaurant\Services\RestaurantService.cs(53,35): warning CS8601: Possible null reference assignment. [D:\QLNH\Backend\RestaurantApp.API\RestaurantApp.API.csproj]
+D:\QLNH\Backend\RestaurantApp.API\Modules\Restaurant\Services\RestaurantService.cs(54,31): warning CS8601: Possible null reference assignment. [D:\QLNH\Backend\RestaurantApp.API\RestaurantApp.API.csproj]
+D:\QLNH\Backend\RestaurantApp.API\Modules\Restaurant\Services\RestaurantService.cs(55,29): warning CS8601: Possible null reference assignment. [D:\QLNH\Backend\RestaurantApp.API\RestaurantApp.API.csproj]
+D:\QLNH\Backend\RestaurantApp.API\Modules\Restaurant\Services\RestaurantService.cs(56,29): warning CS8601: Possible null reference assignment. [D:\QLNH\Backend\RestaurantApp.API\RestaurantApp.API.csproj]
+D:\QLNH\Backend\RestaurantApp.API\Modules\Menu\Services\MenuService.cs(51,43): warning CS8601: Possible null reference assignment. [D:\QLNH\Backend\RestaurantApp.API\RestaurantApp.API.csproj]
+  RestaurantApp.API -> D:\QLNH\Backend\RestaurantApp.API\bin\Debug\net9.0\RestaurantApp.API.dll
+
+Build succeeded.
+
+D:\QLNH\Backend\RestaurantApp.API\RestaurantApp.API.csproj : warning NU1903: Package 'AutoMapper' 13.0.1 has a known high severity vulnerability, https://github.com/advisories/GHSA-rvv3-g6hj-g44x
+D:\QLNH\Backend\RestaurantApp.API\RestaurantApp.API.csproj : warning NU1903: Package 'AutoMapper' 13.0.1 has a known high severity vulnerability, https://github.com/advisories/GHSA-rvv3-g6hj-g44x
+D:\QLNH\Backend\RestaurantApp.API\Modules\Auth\Services\AuthService.cs(23,35): warning CS1998: This async method lacks 'await' operators and will run synchronously. Consider using the 'await' operator to await non-blocking API calls, or 'await Task.Run(...)' to do CPU-bound work on a background thread. [D:\QLNH\Backend\RestaurantApp.API\RestaurantApp.API.csproj]
+D:\QLNH\Backend\RestaurantApp.API\Modules\Restaurant\Services\RestaurantService.cs(33,35): warning CS8601: Possible null reference assignment. [D:\QLNH\Backend\RestaurantApp.API\RestaurantApp.API.csproj]
+D:\QLNH\Backend\RestaurantApp.API\Modules\Restaurant\Services\RestaurantService.cs(34,31): warning CS8601: Possible null reference assignment. [D:\QLNH\Backend\RestaurantApp.API\RestaurantApp.API.csproj]
+D:\QLNH\Backend\RestaurantApp.API\Modules\Restaurant\Services\RestaurantService.cs(35,29): warning CS8601: Possible null reference assignment. [D:\QLNH\Backend\RestaurantApp.API\RestaurantApp.API.csproj]
+D:\QLNH\Backend\RestaurantApp.API\Modules\Restaurant\Services\RestaurantService.cs(36,29): warning CS8601: Possible null reference assignment. [D:\QLNH\Backend\RestaurantApp.API\RestaurantApp.API.csproj]
+D:\QLNH\Backend\RestaurantApp.API\Modules\Restaurant\Services\RestaurantService.cs(53,35): warning CS8601: Possible null reference assignment. [D:\QLNH\Backend\RestaurantApp.API\RestaurantApp.API.csproj]
+D:\QLNH\Backend\RestaurantApp.API\Modules\Restaurant\Services\RestaurantService.cs(54,31): warning CS8601: Possible null reference assignment. [D:\QLNH\Backend\RestaurantApp.API\RestaurantApp.API.csproj]
+D:\QLNH\Backend\RestaurantApp.API\Modules\Restaurant\Services\RestaurantService.cs(55,29): warning CS8601: Possible null reference assignment. [D:\QLNH\Backend\RestaurantApp.API\RestaurantApp.API.csproj]
+D:\QLNH\Backend\RestaurantApp.API\Modules\Restaurant\Services\RestaurantService.cs(56,29): warning CS8601: Possible null reference assignment. [D:\QLNH\Backend\RestaurantApp.API\RestaurantApp.API.csproj]
+D:\QLNH\Backend\RestaurantApp.API\Modules\Menu\Services\MenuService.cs(51,43): warning CS8601: Possible null reference assignment. [D:\QLNH\Backend\RestaurantApp.API\RestaurantApp.API.csproj]
+    12 Warning(s)
+    0 Error(s)
+
+Time Elapsed 00:00:16.42

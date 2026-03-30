@@ -1,0 +1,66 @@
+namespace RestaurantApp.API.Modules.Menu.DTOs
+{
+    public class CreateMenuCategoryDto
+    {
+        public Guid RestaurantId { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public string? ImageUrl { get; set; }
+        public int SortOrder { get; set; }
+    }
+
+    public class UpdateMenuCategoryDto
+    {
+        public string? Name { get; set; }
+        public string? ImageUrl { get; set; }
+        public int? SortOrder { get; set; }
+        public bool? IsActive { get; set; }
+    }
+
+    public class MenuCategoryDto
+    {
+        public Guid Id { get; set; }
+        public Guid RestaurantId { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public string? ImageUrl { get; set; }
+        public int SortOrder { get; set; }
+        public bool IsActive { get; set; }
+        public List<MenuItemDto> Items { get; set; } = new();
+    }
+
+    public class CreateMenuItemDto
+    {
+        public Guid CategoryId { get; set; }
+        public Guid? BranchId { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public string? Description { get; set; }
+        public decimal Price { get; set; }
+        public string? ImageUrl { get; set; }
+        public string? Unit { get; set; }
+        public int SortOrder { get; set; }
+    }
+
+    public class UpdateMenuItemDto
+    {
+        public string? Name { get; set; }
+        public string? Description { get; set; }
+        public decimal? Price { get; set; }
+        public string? ImageUrl { get; set; }
+        public string? Unit { get; set; }
+        public bool? IsAvailable { get; set; }
+        public int? SortOrder { get; set; }
+    }
+
+    public class MenuItemDto
+    {
+        public Guid Id { get; set; }
+        public Guid CategoryId { get; set; }
+        public string CategoryName { get; set; } = string.Empty;
+        public string Name { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
+        public decimal Price { get; set; }
+        public string? ImageUrl { get; set; }
+        public string Unit { get; set; } = string.Empty;
+        public bool IsAvailable { get; set; }
+        public int SortOrder { get; set; }
+    }
+}

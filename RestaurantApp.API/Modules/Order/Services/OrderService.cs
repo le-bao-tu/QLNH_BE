@@ -1,0 +1,231 @@
+using Microsoft.EntityFrameworkCore;
+using RestaurantApp.API.Data;
+using RestaurantApp.API.Modules.Order.DTOs;
+using RestaurantApp.API.Modules.Order.Models;
+
+namespace RestaurantApp.API.Modules.Order.Services
+{
+    public interface IOrderService
+    {
+        Task<List<OrderSummaryDto>> GetActiveOrdersAsync(Guid branchId);
+        Task<List<OrderDto>> GetByTableAsync(Guid tableId);
+        Task<OrderDto?> GetByIdAsync(Guid id);
+        Task<OrderDto> CreateAsync(CreateOrderDto dto, Guid staffId);
+        Task<OrderDto?> AddItemAsync(Guid orderId, AddOrderItemDto dto);
+        Task<OrderDto?> UpdateStatusAsync(Guid orderId, string status);
+        Task<bool> UpdateItemStatusAsync(Guid itemId, string status);
+        Task<bool> CancelOrderAsync(Guid orderId);
+        Task<List<OrderDto>> GetKitchenOrdersAsync(Guid branchId);
+    }
+
+    public class OrderService : IOrderService
+    {
+        private readonly AppDbContext _context;
+
+        public OrderService(AppDbContext context) => _context = context;
+
+        private static OrderDto MapToDto(Models.Order o) => new OrderDto
+        {
+            Id = o.Id,
+            TableId = o.TableId,
+            TableNumber = o.Table?.TableNumber ?? 0,
+            StaffId = o.EmployeeId ?? Guid.Empty,
+            Status = o.Status,
+            Note = o.Note,
+            TotalAmount = o.TotalAmount,
+            Subtotal = o.Subtotal,
+            DiscountAmount = o.DiscountAmount,
+            TaxAmount = o.TaxAmount,
+            GuestCount = o.GuestCount,
+            CreatedAt = o.CreatedAt,
+            UpdatedAt = o.UpdatedAt,
+            Items = o.OrderItems.Select(i => new OrderItemDto
+            {
+                Id = i.Id,
+                MenuItemId = i.MenuItemId,
+                MenuItemName = i.MenuItem?.Name ?? "",
+                MenuItemImageUrl = i.MenuItem?.ImageUrl,
+                Quantity = i.Quantity,
+                UnitPrice = i.UnitPrice,
+                SubTotal = i.TotalPrice,
+                Status = i.Status,
+                Note = i.Note,
+                CreatedAt = i.CreatedAt
+            }).ToList()
+        };
+
+        private IQueryable<Models.Order> OrdersWithIncludes => _context.Orders
+            .Include(o => o.Table)
+            .Include(o => o.OrderItems)
+                .ThenInclude(oi => oi.MenuItem);
+
+        public async Task<List<OrderSummaryDto>> GetActiveOrdersAsync(Guid branchId)
+        {
+            return await _context.Orders
+                .Include(o => o.Table)
+                .Include(o => o.OrderItems)
+                .Where(o => o.BranchId == branchId
+                    && o.Status != OrderStatus.Paid
+                    && o.Status != OrderStatus.Cancelled)
+                .OrderByDescending(o => o.CreatedAt)
+                .Select(o => new OrderSummaryDto
+                {
+                    Id = o.Id,
+                    TableNumber = o.Table!.TableNumber,
+                    Status = o.Status,
+                    TotalAmount = o.TotalAmount,
+                    ItemCount = o.OrderItems.Count,
+                    CreatedAt = o.CreatedAt
+                }).ToListAsync();
+        }
+
+        public async Task<List<OrderDto>> GetByTableAsync(Guid tableId)
+        {
+            var orders = await OrdersWithIncludes
+                .Where(o => o.TableId == tableId)
+                .OrderByDescending(o => o.CreatedAt)
+                .ToListAsync();
+            return orders.Select(MapToDto).ToList();
+        }
+
+        public async Task<OrderDto?> GetByIdAsync(Guid id)
+        {
+            var order = await OrdersWithIncludes.FirstOrDefaultAsync(o => o.Id == id);
+            return order == null ? null : MapToDto(order);
+        }
+
+        public async Task<OrderDto> CreateAsync(CreateOrderDto dto, Guid staffId)
+        {
+            var menuItemIds = dto.Items.Select(i => i.MenuItemId).ToList();
+            var menuItems = await _context.MenuItems
+                .Where(m => menuItemIds.Contains(m.Id))
+                .ToDictionaryAsync(m => m.Id);
+
+            // Get branch from table
+            var table = await _context.Tables.FindAsync(dto.TableId);
+            if (table == null) throw new Exception("Không tìm thấy bàn");
+
+            var order = new Models.Order
+            {
+                BranchId = table.BranchId,
+                TableId = dto.TableId,
+                EmployeeId = staffId,
+                CustomerId = dto.CustomerId,
+                GuestCount = dto.GuestCount,
+                Note = dto.Note,
+                Status = OrderStatus.Pending,
+            };
+
+            foreach (var item in dto.Items)
+            {
+                if (!menuItems.TryGetValue(item.MenuItemId, out var menuItem)) continue;
+                var unitPrice = menuItem.BasePrice;
+                var totalPrice = unitPrice * item.Quantity;
+
+                order.OrderItems.Add(new OrderItem
+                {
+                    MenuItemId = item.MenuItemId,
+                    Quantity = item.Quantity,
+                    UnitPrice = unitPrice,
+                    TotalPrice = totalPrice,
+                    Status = OrderItemStatus.Pending,
+                    Note = item.Note,
+                });
+            }
+
+            order.Subtotal = order.OrderItems.Sum(i => i.TotalPrice);
+            order.TotalAmount = order.Subtotal - order.DiscountAmount + order.TaxAmount;
+
+            _context.Orders.Add(order);
+
+            // Cập nhật status bàn
+            table.Status = Table.Models.TableStatus.Occupied;
+            table.UpdatedAt = DateTime.UtcNow;
+
+            await _context.SaveChangesAsync();
+            return await GetByIdAsync(order.Id) ?? throw new Exception("Khong the tao don hang");
+        }
+
+        public async Task<OrderDto?> AddItemAsync(Guid orderId, AddOrderItemDto dto)
+        {
+            var order = await _context.Orders.Include(o => o.OrderItems).FirstOrDefaultAsync(o => o.Id == orderId);
+            if (order == null) return null;
+
+            var menuItem = await _context.MenuItems.FindAsync(dto.MenuItemId);
+            if (menuItem == null) return null;
+
+            var unitPrice = menuItem.BasePrice;
+            var totalPrice = unitPrice * dto.Quantity;
+
+            order.OrderItems.Add(new OrderItem
+            {
+                OrderId = orderId,
+                MenuItemId = dto.MenuItemId,
+                Quantity = dto.Quantity,
+                UnitPrice = unitPrice,
+                TotalPrice = totalPrice,
+                Status = OrderItemStatus.Pending,
+                Note = dto.Note,
+            });
+
+            order.Subtotal = order.OrderItems.Sum(i => i.TotalPrice);
+            order.TotalAmount = order.Subtotal - order.DiscountAmount + order.TaxAmount;
+            order.UpdatedAt = DateTime.UtcNow;
+
+            await _context.SaveChangesAsync();
+            return await GetByIdAsync(orderId);
+        }
+
+        public async Task<OrderDto?> UpdateStatusAsync(Guid orderId, string status)
+        {
+            var order = await _context.Orders.FindAsync(orderId);
+            if (order == null) return null;
+            order.Status = status;
+            order.UpdatedAt = DateTime.UtcNow;
+
+            if (status == OrderStatus.Paid || status == OrderStatus.Cancelled)
+            {
+                var table = await _context.Tables.FindAsync(order.TableId);
+                if (table != null) { table.Status = Table.Models.TableStatus.Available; table.UpdatedAt = DateTime.UtcNow; }
+            }
+
+            await _context.SaveChangesAsync();
+            return await GetByIdAsync(orderId);
+        }
+
+        public async Task<bool> UpdateItemStatusAsync(Guid itemId, string status)
+        {
+            var item = await _context.OrderItems.FindAsync(itemId);
+            if (item == null) return false;
+            item.Status = status;
+            item.UpdatedAt = DateTime.UtcNow;
+            await _context.SaveChangesAsync();
+            return true;
+        }
+
+        public async Task<bool> CancelOrderAsync(Guid orderId)
+        {
+            var order = await _context.Orders.Include(o => o.OrderItems).FirstOrDefaultAsync(o => o.Id == orderId);
+            if (order == null) return false;
+            order.Status = OrderStatus.Cancelled;
+            order.UpdatedAt = DateTime.UtcNow;
+            foreach (var item in order.OrderItems) item.Status = OrderItemStatus.Cancelled;
+
+            var table = await _context.Tables.FindAsync(order.TableId);
+            if (table != null) { table.Status = Table.Models.TableStatus.Available; table.UpdatedAt = DateTime.UtcNow; }
+
+            await _context.SaveChangesAsync();
+            return true;
+        }
+
+        public async Task<List<OrderDto>> GetKitchenOrdersAsync(Guid branchId)
+        {
+            var orders = await OrdersWithIncludes
+                .Where(o => o.BranchId == branchId
+                    && (o.Status == OrderStatus.Pending || o.Status == OrderStatus.Preparing))
+                .OrderBy(o => o.CreatedAt)
+                .ToListAsync();
+            return orders.Select(MapToDto).ToList();
+        }
+    }
+}
