@@ -41,6 +41,23 @@ namespace RestaurantApp.API.Data
         private List<AuditEntry> OnBeforeSaveChanges()
         {
             ChangeTracker.DetectChanges();
+            
+            // Fix PostgreSQL DateTime Kind Issue Globally before save (Last Defense)
+            foreach (var entry in ChangeTracker.Entries().Where(e => e.State == EntityState.Added || e.State == EntityState.Modified))
+            {
+                var properties = entry.Entity.GetType().GetProperties()
+                    .Where(p => p.PropertyType == typeof(DateTime) || p.PropertyType == typeof(DateTime?));
+
+                foreach (var prop in properties)
+                {
+                    var val = prop.GetValue(entry.Entity);
+                    if (val is DateTime dt && dt.Kind == DateTimeKind.Unspecified)
+                    {
+                        prop.SetValue(entry.Entity, DateTime.SpecifyKind(dt, DateTimeKind.Utc));
+                    }
+                }
+            }
+
             var auditEntries = new List<AuditEntry>();
             foreach (var entry in ChangeTracker.Entries())
             {

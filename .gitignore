@@ -1,0 +1,37 @@
+## [Visual Studio]
+.vs/
+[Bb]in/
+[Oo]bj/
+*.user
+*.userosscache
+*.sln.docstates
+
+## [Built files]
+*.dll
+*.exe
+*.pdb
+*.appx
+*.msi
+*.msix
+*.msixbundle
+*.msixbound
+
+## [NuGet]
+packages/
+*.nupkg
+
+## [OS]
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+## [IDE]
+.vs/
+.idea/
+.vscode/
+
+## [User-specific]
+*.suo
+*.user
+*.userosscache
+*.sln.docstates

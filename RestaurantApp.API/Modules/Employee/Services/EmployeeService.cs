@@ -5,7 +5,7 @@ using RestaurantApp.API.Modules.Employee.Models;
 namespace RestaurantApp.API.Modules.Employee.Services
 {
     public record EmployeeDto(Guid Id, Guid BranchId, string FullName, string? Phone, string? Email, string Role, decimal HourlyRate, DateOnly? HiredAt, string? AvatarUrl, DateTime CreatedAt);
-    public record CreateEmployeeDto(Guid BranchId, string FullName, string? Phone, string? Email, string Role, decimal HourlyRate, DateOnly? HiredAt);
+    public record CreateEmployeeDto(Guid BranchId, string FullName, string? Phone, string? Email, string Role, decimal HourlyRate, DateOnly? HiredAt, string? Username = null, string? Password = null);
     public record ShiftDto(Guid Id, Guid EmployeeId, string EmployeeName, DateOnly ShiftDate, TimeOnly StartTime, TimeOnly EndTime, DateTime? ActualStart, DateTime? ActualEnd, string Status, string? Note);
     public record CreateShiftDto(Guid BranchId, Guid EmployeeId, DateOnly ShiftDate, TimeOnly StartTime, TimeOnly EndTime, string? Note);
 
@@ -41,10 +41,28 @@ namespace RestaurantApp.API.Modules.Employee.Services
         {
             var e = new Models.Employee
             {
+                Id = Guid.NewGuid(),
                 BranchId = dto.BranchId, FullName = dto.FullName, Phone = dto.Phone,
-                Email = dto.Email, Role = dto.Role, HourlyRate = dto.HourlyRate, HiredAt = dto.HiredAt
+                Email = dto.Email, Role = dto.Role, HourlyRate = dto.HourlyRate, HiredAt = dto.HiredAt,
+                CreatedAt = DateTime.UtcNow
             };
             _ctx.Employees.Add(e);
+
+            // Create User Account if provided (Step 2.2)
+            if (!string.IsNullOrEmpty(dto.Username) && !string.IsNullOrEmpty(dto.Password))
+            {
+                var user = new RestaurantApp.API.Modules.Auth.Models.User
+                {
+                    Id = Guid.NewGuid(),
+                    Username = dto.Username,
+                    Email = dto.Email ?? $"{dto.Username}@restaurant.com",
+                    FullName = dto.FullName,
+                    PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password),
+                    Role = dto.Role // manager / cashier / waiter / chef
+                };
+                _ctx.Users.Add(user);
+            }
+
             await _ctx.SaveChangesAsync();
             return ToDto(e);
         }

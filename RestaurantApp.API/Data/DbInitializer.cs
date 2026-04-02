@@ -30,8 +30,8 @@ namespace RestaurantApp.API.Data
                 context.Branches.Add(new Branch
                 {
                     Id = branchId,
-                    RestaurantId = restaurantId,
-                    Name = "Chi nhánh Trung tâm (HQ)",
+                    RestaurantId = restaurantId,    
+                    Name = "Chi nhánh Trung tâm (HQ)",  
                     Address = "123 Đường Pfxsoft, TP. Hồ Chí Minh",
                     Phone = "0901234567",
                     IsActive = true
