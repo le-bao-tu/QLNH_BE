@@ -178,6 +178,7 @@ namespace RestaurantApp.API.Data
         public DbSet<MenuItem> MenuItems => Set<MenuItem>();
         public DbSet<MenuItemOptionGroup> MenuItemOptionGroups => Set<MenuItemOptionGroup>();
         public DbSet<MenuItemOption> MenuItemOptions => Set<MenuItemOption>();
+        public DbSet<MenuItemCombo> MenuItemCombos => Set<MenuItemCombo>();
 
         // ===== ORDERS =====
         public DbSet<Order> Orders => Set<Order>();
@@ -356,6 +357,24 @@ namespace RestaurantApp.API.Data
                 e.ToTable("menu_item_options");
                 e.Property(x => x.ExtraPrice).HasColumnType("numeric(12,2)").HasComment("Giá cộng thêm so với giá gốc của món");
                 e.HasOne(o => o.OptionGroup).WithMany(g => g.Options).HasForeignKey(o => o.OptionGroupId).OnDelete(DeleteBehavior.Cascade);
+            });
+
+            // ===== MENU ITEM COMBOS =====
+            modelBuilder.Entity<MenuItemCombo>(e =>
+            {
+                e.ToTable("menu_item_combos");
+                e.HasIndex(x => x.ComboItemId).HasDatabaseName("idx_menu_item_combos_combo_id");
+                e.HasIndex(x => x.SingleItemId).HasDatabaseName("idx_menu_item_combos_single_id");
+                
+                e.HasOne(c => c.ComboItem)
+                 .WithMany(m => m.ComboItems)
+                 .HasForeignKey(c => c.ComboItemId)
+                 .OnDelete(DeleteBehavior.Cascade);
+                 
+                e.HasOne(c => c.SingleItem)
+                 .WithMany()
+                 .HasForeignKey(c => c.SingleItemId)
+                 .OnDelete(DeleteBehavior.Restrict);
             });
 
             // ===== ORDERS =====

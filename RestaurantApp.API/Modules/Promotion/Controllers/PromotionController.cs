@@ -20,15 +20,31 @@ namespace RestaurantApp.API.Modules.Promotion.Controllers
         public async Task<IActionResult> Create([FromBody] CreatePromotionDto dto)
             => Ok(await _svc.CreateAsync(dto));
 
+        [HttpPut("{id}")]
+        public async Task<IActionResult> Update(Guid id, [FromBody] UpdatePromotionDto dto)
+        {
+            var r = await _svc.UpdateAsync(id, dto); return r == null ? NotFound() : Ok(r);
+        }
+
         [HttpPatch("{id}/toggle")]
         public async Task<IActionResult> Toggle(Guid id)
         {
             var r = await _svc.ToggleActiveAsync(id); return r == null ? NotFound() : Ok(r);
         }
 
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> Delete(Guid id)
+        {
+            var r = await _svc.DeleteAsync(id); return r ? Ok() : NotFound();
+        }
+
         [HttpPost("vouchers")]
         public async Task<IActionResult> CreateVoucher([FromBody] CreateVoucherDto dto)
             => Ok(await _svc.CreateVoucherAsync(dto));
+
+        [HttpGet("{id}/vouchers")]
+        public async Task<IActionResult> GetVouchers(Guid id)
+            => Ok(await _svc.GetVouchersByPromotionAsync(id));
 
         [HttpGet("vouchers/validate")]
         public async Task<IActionResult> ValidateVoucher([FromQuery] string code, [FromQuery] decimal orderAmount)

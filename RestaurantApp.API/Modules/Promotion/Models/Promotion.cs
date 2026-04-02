@@ -20,6 +20,9 @@ namespace RestaurantApp.API.Modules.Promotion.Models
         /// <summary>Giá trị giảm (% hoặc số tiền cố định)</summary>
         public decimal DiscountValue { get; set; }
 
+        /// <summary>Áp dụng cho: bill / item</summary>
+        public string ApplyTo { get; set; } = "bill";
+
         /// <summary>Giá trị đơn hàng tối thiểu để áp dụng</summary>
         public decimal MinOrderAmount { get; set; } = 0;
 
@@ -34,6 +37,9 @@ namespace RestaurantApp.API.Modules.Promotion.Models
 
         /// <summary>Đang kích hoạt</summary>
         public bool IsActive { get; set; } = true;
+
+        /// <summary>Menu Item được áp dụng</summary>
+        public string? MenuItemIds { get; set; }
 
         // Navigation
         public ICollection<VoucherCode> VoucherCodes { get; set; } = new List<VoucherCode>();
