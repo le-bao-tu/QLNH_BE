@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using RestaurantApp.API.Data;
 using RestaurantApp.API.Modules.Menu.DTOs;
 using RestaurantApp.API.Modules.Menu.Models;
+using RestaurantApp.API.Modules.Promotion.Models;
 
 namespace RestaurantApp.API.Modules.Menu.Services
 {
@@ -78,6 +79,7 @@ namespace RestaurantApp.API.Modules.Menu.Services
             var cat = await _context.MenuCategories.FindAsync(id);
             if (cat == null) return null;
             if (dto.Name != null) cat.Name = dto.Name;
+            if (dto.ImageUrl != null) cat.ImageUrl = dto.ImageUrl;
             if (dto.SortOrder.HasValue) cat.SortOrder = dto.SortOrder.Value;
             if (dto.IsActive.HasValue) cat.IsActive = dto.IsActive.Value;
             cat.UpdatedAt = DateTime.UtcNow;
@@ -95,22 +97,36 @@ namespace RestaurantApp.API.Modules.Menu.Services
 
         public async Task<List<MenuItemDto>> GetItemsByCategoryAsync(Guid categoryId)
         {
-            return await _context.MenuItems.Include(i => i.Category)
+            return await _context.MenuItems
+                .Include(i => i.Category)
+                .Include(i => i.ComboItems).ThenInclude(c => c.SingleItem)
                 .Where(i => i.CategoryId == categoryId).OrderBy(i => i.SortOrder)
                 .Select(i => ToItemDto(i)).ToListAsync();
         }
 
         public async Task<List<MenuItemDto>> GetAllItemsByRestaurantAsync(Guid restaurantId)
         {
-            return await _context.MenuItems.Include(i => i.Category)
+            var promotions = _context.Promotions.Where(promote => promote.StartDate.CompareTo(DateTime.Now) < 0
+            && promote.EndDate.CompareTo(DateTime.Now) > 0 && promote.ApplyTo == "item"
+            );
+
+            var menuItems = await _context.MenuItems
+                .Include(i => i.Category)
+                .Include(i => i.ComboItems).ThenInclude(c => c.SingleItem)
                 .Where(i => i.Category!.RestaurantId == restaurantId)
                 .OrderBy(i => i.Category!.SortOrder).ThenBy(i => i.SortOrder)
                 .Select(i => ToItemDto(i)).ToListAsync();
+        
+            return menuItems;
+        
         }
 
         public async Task<MenuItemDto?> GetItemByIdAsync(Guid id)
         {
-            var i = await _context.MenuItems.Include(m => m.Category).FirstOrDefaultAsync(m => m.Id == id);
+            var i = await _context.MenuItems
+                .Include(m => m.Category)
+                .Include(m => m.ComboItems).ThenInclude(c => c.SingleItem)
+                .FirstOrDefaultAsync(m => m.Id == id);
             return i == null ? null : ToItemDto(i);
         }
 
@@ -126,15 +142,33 @@ namespace RestaurantApp.API.Modules.Menu.Services
                 Unit = dto.Unit ?? "phan",
                 SortOrder = dto.SortOrder,
                 IsAvailable = true,
+                ItemType = dto.ItemType ?? "single"
             };
+
+            // Save item first to get the generated ID before adding combo children
             _context.MenuItems.Add(item);
             await _context.SaveChangesAsync();
+
+            if (item.ItemType == "combo" && dto.ComboItemIds != null && dto.ComboItemIds.Count > 0)
+            {
+                foreach (var sId in dto.ComboItemIds)
+                {
+                    _context.MenuItemCombos.Add(new MenuItemCombo
+                    {
+                        ComboItemId = item.Id,   // now item.Id is a real GUID
+                        SingleItemId = sId,
+                        Quantity = 1
+                    });
+                }
+                await _context.SaveChangesAsync();
+            }
+
             return await GetItemByIdAsync(item.Id) ?? throw new Exception("Khong the tao mon");
         }
 
         public async Task<MenuItemDto?> UpdateItemAsync(Guid id, UpdateMenuItemDto dto)
         {
-            var item = await _context.MenuItems.FindAsync(id);
+            var item = await _context.MenuItems.Include(m => m.ComboItems).FirstOrDefaultAsync(x => x.Id == id);
             if (item == null) return null;
             if (dto.Name != null) item.Name = dto.Name;
             if (dto.Description != null) item.Description = dto.Description;
@@ -143,6 +177,17 @@ namespace RestaurantApp.API.Modules.Menu.Services
             if (dto.Unit != null) item.Unit = dto.Unit;
             if (dto.IsAvailable.HasValue) item.IsAvailable = dto.IsAvailable.Value;
             if (dto.SortOrder.HasValue) item.SortOrder = dto.SortOrder.Value;
+            if (dto.ItemType != null) item.ItemType = dto.ItemType;
+            
+            if (dto.ComboItemIds != null && item.ItemType == "combo")
+            {
+                _context.MenuItemCombos.RemoveRange(item.ComboItems);
+                foreach (var sId in dto.ComboItemIds)
+                {
+                    item.ComboItems.Add(new MenuItemCombo { ComboItemId = item.Id, SingleItemId = sId, Quantity = 1 });
+                }
+            }
+
             item.UpdatedAt = DateTime.UtcNow;
             await _context.SaveChangesAsync();
             return await GetItemByIdAsync(id);
@@ -168,6 +213,15 @@ namespace RestaurantApp.API.Modules.Menu.Services
             Unit = i.Unit,
             IsAvailable = i.IsAvailable,
             SortOrder = i.SortOrder,
+            ItemType = i.ItemType,
+            ComboItems = i.ComboItems?.Where(c => c.SingleItem != null).Select(c => new MenuComboItemDto
+            {
+                Id = c.SingleItem!.Id,
+                Name = c.SingleItem.Name,
+                Price = c.SingleItem.BasePrice,
+                ImageUrl = c.SingleItem.ImageUrl,
+                Quantity = c.Quantity
+            }).ToList()
         };
     }
 }

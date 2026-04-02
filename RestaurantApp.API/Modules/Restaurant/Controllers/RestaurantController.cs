@@ -11,7 +11,7 @@ namespace RestaurantApp.API.Modules.Restaurant.Controllers
     {
         private readonly AppDbContext _ctx;
         public RestaurantController(AppDbContext ctx) => _ctx = ctx;
-
+        
         [HttpGet("{id}")]
         public async Task<IActionResult> Get(Guid id)
         {

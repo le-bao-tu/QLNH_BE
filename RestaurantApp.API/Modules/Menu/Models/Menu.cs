@@ -55,9 +55,13 @@ namespace RestaurantApp.API.Modules.Menu.Models
         /// <summary>Thứ tự hiển thị trong danh mục</summary>
         public int SortOrder { get; set; } = 0;
 
+        /// <summary>Loại món ăn: single / combo</summary>
+        public string ItemType { get; set; } = "single";
+
         // Navigation
         public ICollection<MenuItemOptionGroup> OptionGroups { get; set; } = new List<MenuItemOptionGroup>();
         public ICollection<Inventory.Models.MenuItemRecipe> Recipes { get; set; } = new List<Inventory.Models.MenuItemRecipe>();
+        public ICollection<MenuItemCombo> ComboItems { get; set; } = new List<MenuItemCombo>();
     }
 
     /// <summary>Nhóm option của món (VD: Kích thước, Topping, Mức độ chín...)</summary>
@@ -95,5 +99,20 @@ namespace RestaurantApp.API.Modules.Menu.Models
 
         /// <summary>Được chọn mặc định</summary>
         public bool IsDefault { get; set; } = false;
+    }
+
+    /// <summary>Chi tiết món ăn cấu thành một combo</summary>
+    public class MenuItemCombo : BaseEntity
+    {
+        /// <summary>Món combo</summary>
+        public Guid ComboItemId { get; set; }
+        public MenuItem? ComboItem { get; set; }
+
+        /// <summary>Món đơn lẻ trong combo</summary>
+        public Guid SingleItemId { get; set; }
+        public MenuItem? SingleItem { get; set; }
+
+        /// <summary>Số lượng món đơn lẻ trong combo (thường là 1)</summary>
+        public int Quantity { get; set; } = 1;
     }
 }
