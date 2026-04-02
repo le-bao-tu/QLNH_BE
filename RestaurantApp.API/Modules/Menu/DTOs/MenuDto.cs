@@ -37,6 +37,8 @@ namespace RestaurantApp.API.Modules.Menu.DTOs
         public string? ImageUrl { get; set; }
         public string? Unit { get; set; }
         public int SortOrder { get; set; }
+        public string ItemType { get; set; } = "single";
+        public List<Guid>? ComboItemIds { get; set; }
     }
 
     public class UpdateMenuItemDto
@@ -48,6 +50,8 @@ namespace RestaurantApp.API.Modules.Menu.DTOs
         public string? Unit { get; set; }
         public bool? IsAvailable { get; set; }
         public int? SortOrder { get; set; }
+        public string? ItemType { get; set; }
+        public List<Guid>? ComboItemIds { get; set; }
     }
 
     public class MenuItemDto
@@ -58,9 +62,23 @@ namespace RestaurantApp.API.Modules.Menu.DTOs
         public string Name { get; set; } = string.Empty;
         public string Description { get; set; } = string.Empty;
         public decimal Price { get; set; }
+        public decimal DiscountPrice { get; set; }
+        public string? DiscountType { get; set; }
+        public decimal DiscountValue{ get; set; }
         public string? ImageUrl { get; set; }
         public string Unit { get; set; } = string.Empty;
         public bool IsAvailable { get; set; }
         public int SortOrder { get; set; }
+        public string ItemType { get; set; } = "single";
+        public List<MenuComboItemDto>? ComboItems { get; set; }
+    }
+
+    public class MenuComboItemDto
+    {
+        public Guid Id { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public decimal Price { get; set; }
+        public string? ImageUrl { get; set; }
+        public int Quantity { get; set; }
     }
 }

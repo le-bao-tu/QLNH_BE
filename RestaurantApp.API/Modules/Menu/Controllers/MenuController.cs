@@ -100,5 +100,39 @@ namespace RestaurantApp.API.Modules.Menu.Controllers
             var success = await _menuService.DeleteItemAsync(id);
             return success ? Ok(new { message = "Đã xóa món" }) : NotFound();
         }
+
+        // ===== UPLOAD ẢNH MÓN ĂN =====
+        [HttpPost("items/upload-image")]
+        [RequestSizeLimit(10 * 1024 * 1024)] // 10 MB
+        public async Task<IActionResult> UploadMenuImage(IFormFile file)
+        {
+            if (file == null || file.Length == 0)
+                return BadRequest(new { message = "Vui lòng chọn file ảnh." });
+
+            var allowedTypes = new[] { "image/jpeg", "image/png", "image/webp", "image/gif" };
+            if (!allowedTypes.Contains(file.ContentType.ToLower()))
+                return BadRequest(new { message = "Chỉ chấp nhận file ảnh (JPEG, PNG, WEBP, GIF)." });
+
+            // Tạo thư mục lưu ảnh
+            var uploadFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "menu");
+            if (!Directory.Exists(uploadFolder))
+                Directory.CreateDirectory(uploadFolder);
+
+            // Tạo tên file duy nhất
+            var ext = Path.GetExtension(file.FileName).ToLower();
+            var fileName = $"{Guid.NewGuid()}{ext}";
+            var filePath = Path.Combine(uploadFolder, fileName);
+
+            using (var stream = new FileStream(filePath, FileMode.Create))
+            {
+                await file.CopyToAsync(stream);
+            }
+
+            // Lấy base URL từ request
+            var baseUrl = $"{Request.Scheme}://{Request.Host}";
+            var imageUrl = $"{baseUrl}/uploads/menu/{fileName}";
+
+            return Ok(new { url = imageUrl });
+        }
     }
 }
