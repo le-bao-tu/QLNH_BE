@@ -1,0 +1,25 @@
+.vs
+obj
+bin
+nupkgs
+
+# Ignore all appsettings.json in all subprojects
+**/appsettings*.json
+
+# Ignore all Properties folders in all subprojects
+**/Properties/
+
+# Ignore all launchSettings.json in all subprojects
+**/launchSettings*.json
+
+.idea
+.vs
+.DS_Store
+.suo
+.dtbcahe.v2
+.futdcache.v2
+.vscode
+.config
+*.csproj.user
+*.slnLaunch.user
+publish
