@@ -320,7 +320,7 @@ namespace RestaurantApp.API.Data
                 e.Property(x => x.Floor).HasComment("Tầng hoặc khu vực đặt bàn");
                 e.Property(x => x.QrCode).HasComment("Mã QR để khách tự order");
                 e.HasOne(t => t.Branch)
-                 .WithMany()
+                 .WithMany(b => b.Tables)
                  .HasForeignKey(t => t.BranchId)
                  .OnDelete(DeleteBehavior.Restrict);
             });

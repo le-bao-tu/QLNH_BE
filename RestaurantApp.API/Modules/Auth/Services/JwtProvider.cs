@@ -28,7 +28,9 @@ namespace RestaurantApp.API.Modules.Auth.Services
                 new Claim(ClaimTypes.Name, user.Username),
                 new Claim(ClaimTypes.Email, user.Email),
                 new Claim(ClaimTypes.Role, user.Role),
-                new Claim("fullName", user.FullName)
+                new Claim("fullName", user.FullName),
+                new Claim("restaurantId", user.RestaurantId?.ToString() ?? ""),
+                new Claim("branchId", user.BranchId?.ToString() ?? "")
             };
 
             var expiry = DateTime.UtcNow.AddMinutes(double.Parse(jwtSettings["ExpiryInMinutes"] ?? "60"));
