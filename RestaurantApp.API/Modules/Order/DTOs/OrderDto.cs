@@ -6,6 +6,7 @@ namespace RestaurantApp.API.Modules.Order.DTOs
         public Guid? CustomerId { get; set; }
         public int GuestCount { get; set; } = 1;
         public string? Note { get; set; }
+        public string? VoucherCode { get; set; }
         public List<CreateOrderItemDto> Items { get; set; } = new();
     }
 
@@ -42,6 +43,7 @@ namespace RestaurantApp.API.Modules.Order.DTOs
         public int Quantity { get; set; }
         public decimal UnitPrice { get; set; }
         public decimal SubTotal { get; set; }
+        public decimal OriginalPrice { get; set; }
         public string Status { get; set; } = string.Empty;
         public string? Note { get; set; }
         public DateTime CreatedAt { get; set; }
@@ -72,6 +74,7 @@ namespace RestaurantApp.API.Modules.Order.DTOs
         public int TableNumber { get; set; }
         public string Status { get; set; } = string.Empty;
         public decimal TotalAmount { get; set; }
+        public decimal Subtotal { get; set; }
         public int ItemCount { get; set; }
         public DateTime CreatedAt { get; set; }
     }

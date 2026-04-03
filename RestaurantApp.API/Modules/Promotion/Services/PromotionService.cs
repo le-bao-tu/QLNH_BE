@@ -15,14 +15,17 @@ namespace RestaurantApp.API.Modules.Promotion.Services
     public interface IPromotionService
     {
         Task<List<PromotionDto>> GetByRestaurantAsync(Guid restaurantId, bool? activeOnly = null);
-        Task<PromotionDto> CreateAsync(CreatePromotionDto dto);
-        Task<PromotionDto?> UpdateAsync(Guid id, UpdatePromotionDto dto);
-        Task<PromotionDto?> ToggleActiveAsync(Guid id);
-        Task<bool> DeleteAsync(Guid id);
+        Task<List<PromotionDto>> GetActivePromotionsAsync(Guid restaurantId);
         Task<ValidateVoucherResultDto?> ValidateVoucherAsync(string code, decimal orderAmount);
         Task<VoucherDto> CreateVoucherAsync(CreateVoucherDto dto);
         Task<List<VoucherDto>> GetVouchersByPromotionAsync(Guid promotionId);
         Task<decimal> ApplyPromotionAsync(Guid promotionId, decimal orderTotal);
+        Task<PromotionDto> CreateAsync(CreatePromotionDto dto);
+        Task<PromotionDto?> UpdateAsync(Guid id, UpdatePromotionDto dto);
+        Task<PromotionDto?> ToggleActiveAsync(Guid id);
+        Task<bool> DeleteAsync(Guid id);
+        Task<List<PromotionDto>> GetActiveItemPromotionsAsync(Guid restaurantId);
+
     }
 
     public class PromotionService : IPromotionService
@@ -32,9 +35,32 @@ namespace RestaurantApp.API.Modules.Promotion.Services
 
         public async Task<List<PromotionDto>> GetByRestaurantAsync(Guid restaurantId, bool? activeOnly = null)
         {
-            var query = _ctx.Promotions.Where(p => p.RestaurantId == restaurantId);
+            var query = _ctx.Promotions.Where(p => p.RestaurantId == restaurantId && !p.IsDeleted);
             if (activeOnly == true) query = query.Where(p => p.IsActive);
             return await query.OrderByDescending(p => p.CreatedAt).Select(p => ToDto(p)).ToListAsync();
+        }
+
+        public async Task<List<PromotionDto>> GetActivePromotionsAsync(Guid restaurantId)
+        {
+            var today = DateOnly.FromDateTime(DateTime.Today);
+            var promotions = await _ctx.Promotions
+                .Where(p => p.RestaurantId == restaurantId && p.IsActive && p.StartDate <= today && p.EndDate >= today)
+                .ToListAsync();
+            return promotions.Select(ToDto).ToList();
+        }
+
+        public async Task<List<PromotionDto>> GetActiveItemPromotionsAsync(Guid restaurantId)
+        {
+            var today = DateOnly.FromDateTime(DateTime.Today);
+            return await _ctx.Promotions
+                .Where(p => p.RestaurantId == restaurantId 
+                    && p.IsActive 
+                    && !p.IsDeleted
+                    && p.ApplyTo == "item"
+                    && p.StartDate <= today 
+                    && p.EndDate >= today)
+                .Select(p => ToDto(p))
+                .ToListAsync();
         }
 
         public async Task<PromotionDto> CreateAsync(CreatePromotionDto dto)
@@ -72,7 +98,7 @@ namespace RestaurantApp.API.Modules.Promotion.Services
             if (dto.StartDate.HasValue) p.StartDate = dto.StartDate.Value;
             if (dto.EndDate.HasValue) p.EndDate = dto.EndDate.Value;
             if (dto.IsActive.HasValue) p.IsActive = dto.IsActive.Value;
-            if (dto.MenuItemIds != null) p.MenuItemIds = dto.MenuItemIds;
+            p.MenuItemIds = dto.MenuItemIds;
             p.UpdatedAt = DateTime.UtcNow;
             await _ctx.SaveChangesAsync();
             return ToDto(p);
