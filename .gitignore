@@ -1,25 +1,32 @@
-.vs
-obj
-bin
-nupkgs
+# Visual Studio / IDE
+.vs/
+.vscode/
+.idea/
+*.user
+*.suo
+*.slnLaunch.user
+*.csproj.user
 
-# Ignore all appsettings.json in all subprojects
+# Build output
+bin/
+obj/
+**/bin/
+**/obj/
+publish/
+nupkgs/
+
+# Runtime artifacts
+*.dll
+*.pdb
+*.exe
+*.runtimeconfig.json
+
+# Project settings (chứa thông tin nhạy cảm)
 **/appsettings*.json
-
-# Ignore all Properties folders in all subprojects
+**/launchSettings*.json
 **/Properties/
 
-# Ignore all launchSettings.json in all subprojects
-**/launchSettings*.json
-
-.idea
-.vs
-.DS_Store
-.suo
+# Cache files
 .dtbcahe.v2
 .futdcache.v2
-.vscode
-.config
-*.csproj.user
-*.slnLaunch.user
-publish
+.DS_Store
