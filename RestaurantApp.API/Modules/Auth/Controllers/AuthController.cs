@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using RestaurantApp.API.Modules.Auth.DTOs;
 using RestaurantApp.API.Modules.Auth.Services;
@@ -60,6 +61,54 @@ namespace RestaurantApp.API.Modules.Auth.Controllers
         {
             Response.Cookies.Delete("accessToken");
             return Ok(new { message = "Logged out" });
+        }
+
+        /// <summary>Owner/Manager tạo tài khoản nhân viên cho nhà hàng của mình</summary>
+        [HttpPost("create-staff")]
+        [Authorize]
+        public async Task<IActionResult> CreateStaff([FromBody] CreateStaffDto dto)
+        {
+            try
+            {
+                var user = await _authService.CreateStaffAsync(dto);
+                return Ok(user);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
+        /// <summary>Lấy danh sách tài khoản thuộc nhà hàng</summary>
+        [HttpGet("users")]
+        [Authorize]
+        public async Task<IActionResult> GetUsers([FromQuery] Guid restaurantId)
+        {
+            try
+            {
+                var users = await _authService.GetUsersByRestaurantAsync(restaurantId);
+                return Ok(users);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
+        /// <summary>Xóa hoặc vô hiệu hóa tài khoản</summary>
+        [HttpDelete("users/{userId}")]
+        [Authorize]
+        public async Task<IActionResult> DeleteUser(Guid userId)
+        {
+            try
+            {
+                await _authService.DeleteUserAsync(userId);
+                return Ok(new { message = "Đã xóa tài khoản" });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
         }
     }
 }

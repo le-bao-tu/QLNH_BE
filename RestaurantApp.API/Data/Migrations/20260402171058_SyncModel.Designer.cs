@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using RestaurantApp.API.Data;
@@ -11,9 +12,11 @@ using RestaurantApp.API.Data;
 namespace RestaurantApp.API.Data.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260402171058_SyncModel")]
+    partial class SyncModel
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -79,9 +82,6 @@ namespace RestaurantApp.API.Data.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
-                    b.Property<Guid?>("BranchId")
-                        .HasColumnType("uuid");
-
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp without time zone");
 
@@ -100,9 +100,6 @@ namespace RestaurantApp.API.Data.Migrations
                     b.Property<string>("PasswordHash")
                         .IsRequired()
                         .HasColumnType("text");
-
-                    b.Property<Guid?>("RestaurantId")
-                        .HasColumnType("uuid");
 
                     b.Property<string>("Role")
                         .IsRequired()
@@ -1325,6 +1322,9 @@ namespace RestaurantApp.API.Data.Migrations
                     b.Property<Guid>("BranchId")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid?>("BranchId1")
+                        .HasColumnType("uuid");
+
                     b.Property<int>("Capacity")
                         .HasColumnType("integer")
                         .HasComment("Sức chứa tối đa");
@@ -1362,6 +1362,8 @@ namespace RestaurantApp.API.Data.Migrations
 
                     b.HasIndex("BranchId")
                         .HasDatabaseName("idx_tables_branch_id");
+
+                    b.HasIndex("BranchId1");
 
                     b.HasIndex("BranchId", "TableNumber")
                         .IsUnique()
@@ -1648,10 +1650,14 @@ namespace RestaurantApp.API.Data.Migrations
             modelBuilder.Entity("RestaurantApp.API.Modules.Table.Models.Table", b =>
                 {
                     b.HasOne("RestaurantApp.API.Modules.Branch.Models.Branch", "Branch")
-                        .WithMany("Tables")
+                        .WithMany()
                         .HasForeignKey("BranchId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.HasOne("RestaurantApp.API.Modules.Branch.Models.Branch", null)
+                        .WithMany("Tables")
+                        .HasForeignKey("BranchId1");
 
                     b.Navigation("Branch");
                 });

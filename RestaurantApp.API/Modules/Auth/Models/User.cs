@@ -9,5 +9,7 @@ namespace RestaurantApp.API.Modules.Auth.Models
         public string PasswordHash { get; set; } = string.Empty;
         public string FullName { get; set; } = string.Empty;
         public string Role { get; set; } = "User"; // Admin, Manager, Staff, User
+        public Guid? RestaurantId { get; set; } // For Owner scoping
+        public Guid? BranchId { get; set; } // For Staff/Manager scoping
     }
 }
