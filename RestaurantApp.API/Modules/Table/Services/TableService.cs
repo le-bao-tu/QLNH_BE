@@ -72,13 +72,17 @@ namespace RestaurantApp.API.Modules.Table.Services
 
         public async Task<TableDto> CreateAsync(CreateTableDto dto)
         {
+            var tableId = Guid.NewGuid();
             var table = new Models.Table
             {
+                Id = tableId,
                 BranchId = dto.BranchId,
                 TableNumber = dto.TableNumber,
                 Capacity = dto.Capacity,
                 Note = dto.Note,
-                Status = TableStatus.Available
+                Status = TableStatus.Available,
+                CreatedAt = DateTime.UtcNow,
+                QrCode = $"https://pfxsoft-rms.com/order?tableId={tableId}" // Step 3.2
             };
             _context.Tables.Add(table);
             await _context.SaveChangesAsync();

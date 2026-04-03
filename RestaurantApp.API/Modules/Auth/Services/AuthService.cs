@@ -40,14 +40,39 @@ namespace RestaurantApp.API.Modules.Auth.Services
 
             var user = new User
             {
+                Id = Guid.NewGuid(),
                 Username = dto.Username,
                 Email = dto.Email,
                 FullName = dto.FullName,
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password),
-                Role = "Manager" // Default for registered users in this context?
+                Role = "Owner" // Highest role
             };
 
             _context.Set<User>().Add(user);
+
+            // Create Restaurant (Step 1.2)
+            var restaurant = new RestaurantApp.API.Modules.Restaurant.Models.Restaurant
+            {
+                Id = Guid.NewGuid(),
+                Name = string.IsNullOrEmpty(dto.RestaurantName) ? $"{dto.FullName}'s Restaurant" : dto.RestaurantName,
+                OwnerId = user.Id,
+                CreatedAt = DateTime.UtcNow
+            };
+            _context.Restaurants.Add(restaurant);
+
+            // Create First Branch (Step 1.3)
+            var branch = new RestaurantApp.API.Modules.Branch.Models.Branch
+            {
+                Id = Guid.NewGuid(),
+                RestaurantId = restaurant.Id,
+                Name = "Chi nhánh 1 (Main)",
+                Address = "Chưa thiết lập",
+                Phone = "Chưa thiết lập",
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow
+            };
+            _context.Branches.Add(branch);
+
             await _context.SaveChangesAsync();
 
             return _mapper.Map<UserDto>(user);

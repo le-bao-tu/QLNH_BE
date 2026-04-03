@@ -70,8 +70,8 @@ namespace RestaurantApp.API.Modules.Promotion.Models
 
     public static class PromotionType
     {
-        public const string PercentDiscount = "percent_discount";
-        public const string FixedDiscount = "fixed_discount";
+        public const string PercentDiscount = "percentage";
+        public const string FixedDiscount = "fixed_amount";
         public const string FreeItem = "free_item";
         public const string BuyXGetY = "buy_x_get_y";
         public const string LoyaltyRedeem = "loyalty_redeem";

@@ -1,7 +1,10 @@
 using Microsoft.EntityFrameworkCore;
 using RestaurantApp.API.Data;
+using RestaurantApp.API.Modules.Menu.Models;
 using RestaurantApp.API.Modules.Order.DTOs;
 using RestaurantApp.API.Modules.Order.Models;
+using RestaurantApp.API.Modules.Promotion.Services;
+using System.Text.Json;
 
 namespace RestaurantApp.API.Modules.Order.Services
 {
@@ -21,8 +24,13 @@ namespace RestaurantApp.API.Modules.Order.Services
     public class OrderService : IOrderService
     {
         private readonly AppDbContext _context;
+        private readonly IPromotionService _promotionService;
 
-        public OrderService(AppDbContext context) => _context = context;
+        public OrderService(AppDbContext context, IPromotionService promotionService)
+        {
+            _context = context;
+            _promotionService = promotionService;
+        }
 
         private static OrderDto MapToDto(Models.Order o) => new OrderDto
         {
@@ -46,6 +54,7 @@ namespace RestaurantApp.API.Modules.Order.Services
                 MenuItemName = i.MenuItem?.Name ?? "",
                 MenuItemImageUrl = i.MenuItem?.ImageUrl,
                 Quantity = i.Quantity,
+                OriginalPrice = i.OriginalPrice,
                 UnitPrice = i.UnitPrice,
                 SubTotal = i.TotalPrice,
                 Status = i.Status,
@@ -73,6 +82,7 @@ namespace RestaurantApp.API.Modules.Order.Services
                     Id = o.Id,
                     TableNumber = o.Table!.TableNumber,
                     Status = o.Status,
+                    Subtotal = o.Subtotal,
                     TotalAmount = o.TotalAmount,
                     ItemCount = o.OrderItems.Count,
                     CreatedAt = o.CreatedAt
@@ -94,6 +104,41 @@ namespace RestaurantApp.API.Modules.Order.Services
             return order == null ? null : MapToDto(order);
         }
 
+        private async Task SubtractInventoryAsync(Guid branchId, List<OrderItem> items)
+        {
+            var menuItemIds = items.Select(i => i.MenuItemId).ToList();
+            var recipes = await _context.Set<RestaurantApp.API.Modules.Inventory.Models.MenuItemRecipe>()
+                .Include(r => r.InventoryItem)
+                .Where(r => menuItemIds.Contains(r.MenuItemId))
+                .ToListAsync();
+
+            if (!recipes.Any()) return;
+
+            foreach (var item in items)
+            {
+                var itemRecipes = recipes.Where(r => r.MenuItemId == item.MenuItemId);
+                foreach (var recipe in itemRecipes)
+                {
+                    if (recipe.InventoryItem == null) continue;
+
+                    var amountToSubtract = recipe.QuantityUsed * item.Quantity;
+                    recipe.InventoryItem.CurrentQuantity -= amountToSubtract;
+
+                    // Add Inventory Transaction
+                    _context.Set<RestaurantApp.API.Modules.Inventory.Models.InventoryTransaction>().Add(new RestaurantApp.API.Modules.Inventory.Models.InventoryTransaction
+                    {
+                        InventoryItemId = recipe.InventoryItemId,
+                        Type = "export",
+                        QuantityChange = -amountToSubtract,
+                        QuantityAfter = recipe.InventoryItem.CurrentQuantity,
+                        ReferenceId = item.OrderId,
+                        Note = $"Xuất kho cho món: {item.MenuItem?.Name} (Số lượng order: {item.Quantity})",
+                        CreatedAt = DateTime.UtcNow
+                    });
+                }
+            }
+        }
+
         public async Task<OrderDto> CreateAsync(CreateOrderDto dto, Guid staffId)
         {
             var menuItemIds = dto.Items.Select(i => i.MenuItemId).ToList();
@@ -102,11 +147,15 @@ namespace RestaurantApp.API.Modules.Order.Services
                 .ToDictionaryAsync(m => m.Id);
 
             // Get branch from table
-            var table = await _context.Tables.FindAsync(dto.TableId);
+            var table = await _context.Tables.Include(t => t.Branch).FirstOrDefaultAsync(t => t.Id == dto.TableId);
             if (table == null) throw new Exception("Không tìm thấy bàn");
+
+            var restaurantId = table.Branch?.RestaurantId ?? Guid.Empty;
+            var activePromotions = await _promotionService.GetActiveItemPromotionsAsync(restaurantId);
 
             var order = new Models.Order
             {
+                Id = Guid.NewGuid(),
                 BranchId = table.BranchId,
                 TableId = dto.TableId,
                 EmployeeId = staffId,
@@ -114,29 +163,57 @@ namespace RestaurantApp.API.Modules.Order.Services
                 GuestCount = dto.GuestCount,
                 Note = dto.Note,
                 Status = OrderStatus.Pending,
+                CreatedAt = DateTime.UtcNow
             };
 
             foreach (var item in dto.Items)
             {
                 if (!menuItems.TryGetValue(item.MenuItemId, out var menuItem)) continue;
-                var unitPrice = menuItem.BasePrice;
+                var unitPrice = CalculateUnitPrice(menuItem.Id, menuItem.BasePrice, activePromotions);
                 var totalPrice = unitPrice * item.Quantity;
+                var originalPrice = menuItem.BasePrice;
 
                 order.OrderItems.Add(new OrderItem
                 {
+                    Id = Guid.NewGuid(),
+                    OrderId = order.Id,
                     MenuItemId = item.MenuItemId,
                     Quantity = item.Quantity,
                     UnitPrice = unitPrice,
                     TotalPrice = totalPrice,
+                    OriginalPrice = originalPrice,
                     Status = OrderItemStatus.Pending,
                     Note = item.Note,
+                    CreatedAt = DateTime.UtcNow
                 });
             }
 
             order.Subtotal = order.OrderItems.Sum(i => i.TotalPrice);
+            // Default 10% VAT (Step 6.2)
+            order.TaxAmount = Math.Round(order.Subtotal * 0.10m, 0); 
             order.TotalAmount = order.Subtotal - order.DiscountAmount + order.TaxAmount;
 
             _context.Orders.Add(order);
+
+            foreach (var item in order.OrderItems)
+            {
+                // Create Kitchen Order for each item (KDS Integration)
+                _context.KitchenOrders.Add(new KitchenOrder
+                {
+                    Id = Guid.NewGuid(),
+                    BranchId = order.BranchId,
+                    OrderItem = item, // Snapshot item for relationship
+                    TableNumber = table.TableNumber,
+                    ItemName = menuItems[item.MenuItemId].Name, // Snapshot name
+                    Quantity = item.Quantity, // Snapshot quantity
+                    Status = KitchenOrderStatus.Pending,
+                    ReceivedAt = DateTime.UtcNow,
+                    Priority = 0
+                });
+            }
+
+            // Process Inventory Subtraction
+            await SubtractInventoryAsync(table.BranchId, order.OrderItems.ToList());
 
             // Cập nhật status bàn
             table.Status = Table.Models.TableStatus.Occupied;
@@ -146,31 +223,98 @@ namespace RestaurantApp.API.Modules.Order.Services
             return await GetByIdAsync(order.Id) ?? throw new Exception("Khong the tao don hang");
         }
 
+        private decimal CalculateUnitPrice(Guid menuItemId, decimal basePrice, List<PromotionDto> activePromotions)
+        {
+            var applicablePromotions = activePromotions.Where(p => 
+            {
+                if (string.IsNullOrEmpty(p.MenuItemIds)) return false;
+                try 
+                {
+                    var ids = JsonSerializer.Deserialize<List<string>>(p.MenuItemIds);
+                    return ids != null && ids.Contains(menuItemId.ToString());
+                }
+                catch { return p.MenuItemIds.Contains(menuItemId.ToString()); }
+            }).ToList();
+
+            if (!applicablePromotions.Any()) return basePrice;
+
+            // Apply the best promotion (lowest price)
+            decimal minPrice = basePrice;
+            foreach (var p in applicablePromotions)
+            {
+                decimal discountedPrice = basePrice;
+                if (p.Type == "percentage")
+                {
+                    discountedPrice = basePrice * (1 - p.DiscountValue / 100);
+                }
+                else if (p.Type == "fixed_amount")
+                {
+                    discountedPrice = Math.Max(0, basePrice - p.DiscountValue);
+                }
+                
+                if (discountedPrice < minPrice) minPrice = discountedPrice;
+            }
+
+            return minPrice;
+        }
+
         public async Task<OrderDto?> AddItemAsync(Guid orderId, AddOrderItemDto dto)
         {
             var order = await _context.Orders.Include(o => o.OrderItems).FirstOrDefaultAsync(o => o.Id == orderId);
             if (order == null) return null;
 
+            var branch = await _context.Branches.FindAsync(order.BranchId);
+            var restaurantId = branch?.RestaurantId ?? Guid.Empty;
+            var activePromotions = await _promotionService.GetActiveItemPromotionsAsync(restaurantId);
+
             var menuItem = await _context.MenuItems.FindAsync(dto.MenuItemId);
             if (menuItem == null) return null;
 
-            var unitPrice = menuItem.BasePrice;
-            var totalPrice = unitPrice * dto.Quantity;
+            // Get table for number
+            var table = await _context.Tables.FindAsync(order.TableId);
 
-            order.OrderItems.Add(new OrderItem
+            var unitPrice = CalculateUnitPrice(menuItem.Id, menuItem.BasePrice, activePromotions); ;
+            var totalPrice = unitPrice * dto.Quantity;
+            var originalPrice = menuItem.BasePrice;
+
+            var newItem = new OrderItem
             {
+                Id = Guid.NewGuid(),
                 OrderId = orderId,
                 MenuItemId = dto.MenuItemId,
                 Quantity = dto.Quantity,
                 UnitPrice = unitPrice,
+                OriginalPrice = originalPrice,
                 TotalPrice = totalPrice,
                 Status = OrderItemStatus.Pending,
                 Note = dto.Note,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            order.OrderItems.Add(newItem);
+
+            // Create Kitchen Order (KDS Integration)
+            _context.KitchenOrders.Add(new KitchenOrder
+            {
+                Id = Guid.NewGuid(),
+                BranchId = order.BranchId,
+                OrderItem = newItem,
+                TableNumber = table?.TableNumber ?? 0,
+                ItemName = menuItem.Name,
+                Quantity = dto.Quantity,
+                Status = KitchenOrderStatus.Pending,
+                ReceivedAt = DateTime.UtcNow,
+                Priority = 0
             });
 
             order.Subtotal = order.OrderItems.Sum(i => i.TotalPrice);
+            // Default 10% VAT (Step 6.2)
+            order.TaxAmount = Math.Round(order.Subtotal * 0.10m, 0); 
             order.TotalAmount = order.Subtotal - order.DiscountAmount + order.TaxAmount;
             order.UpdatedAt = DateTime.UtcNow;
+
+            // Process Inventory Subtraction for the new item
+            await SubtractInventoryAsync(order.BranchId, new List<OrderItem> { newItem });
 
             await _context.SaveChangesAsync();
             return await GetByIdAsync(orderId);

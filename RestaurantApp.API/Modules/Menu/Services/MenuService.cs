@@ -3,6 +3,7 @@ using RestaurantApp.API.Data;
 using RestaurantApp.API.Modules.Menu.DTOs;
 using RestaurantApp.API.Modules.Menu.Models;
 using RestaurantApp.API.Modules.Promotion.Models;
+using System.Text.Json;
 
 namespace RestaurantApp.API.Modules.Menu.Services
 {
@@ -97,28 +98,42 @@ namespace RestaurantApp.API.Modules.Menu.Services
 
         public async Task<List<MenuItemDto>> GetItemsByCategoryAsync(Guid categoryId)
         {
+            var category = await _context.MenuCategories.FindAsync(categoryId);
+            var restaurantId = category?.RestaurantId ?? Guid.Empty;
+            var activePromotions = await GetActiveItemPromotionsAsync(restaurantId);
+
             return await _context.MenuItems
                 .Include(i => i.Category)
                 .Include(i => i.ComboItems).ThenInclude(c => c.SingleItem)
                 .Where(i => i.CategoryId == categoryId).OrderBy(i => i.SortOrder)
-                .Select(i => ToItemDto(i)).ToListAsync();
+                .Select(i => ToItemDto(i, activePromotions)).ToListAsync();
         }
 
         public async Task<List<MenuItemDto>> GetAllItemsByRestaurantAsync(Guid restaurantId)
         {
-            var promotions = _context.Promotions.Where(promote => promote.StartDate.CompareTo(DateTime.Now) < 0
-            && promote.EndDate.CompareTo(DateTime.Now) > 0 && promote.ApplyTo == "item"
-            );
+            var activePromotions = await GetActiveItemPromotionsAsync(restaurantId);
 
             var menuItems = await _context.MenuItems
                 .Include(i => i.Category)
                 .Include(i => i.ComboItems).ThenInclude(c => c.SingleItem)
-                .Where(i => i.Category!.RestaurantId == restaurantId)
+                .Where(i => i.Category!.RestaurantId == restaurantId && !i.IsDeleted)
                 .OrderBy(i => i.Category!.SortOrder).ThenBy(i => i.SortOrder)
-                .Select(i => ToItemDto(i)).ToListAsync();
-        
-            return menuItems;
-        
+                .ToListAsync();
+
+            return menuItems.Select(i => ToItemDto(i, activePromotions)).ToList();
+        }
+
+        private async Task<List<Modules.Promotion.Models.Promotion>> GetActiveItemPromotionsAsync(Guid restaurantId)
+        {
+            var today = DateOnly.FromDateTime(DateTime.Today);
+            return await _context.Promotions
+                .Where(p => p.RestaurantId == restaurantId
+                    && p.IsActive
+                    && !p.IsDeleted
+                    && p.ApplyTo == "item"
+                    && p.StartDate <= today
+                    && p.EndDate >= today)
+                .ToListAsync();
         }
 
         public async Task<MenuItemDto?> GetItemByIdAsync(Guid id)
@@ -127,7 +142,13 @@ namespace RestaurantApp.API.Modules.Menu.Services
                 .Include(m => m.Category)
                 .Include(m => m.ComboItems).ThenInclude(c => c.SingleItem)
                 .FirstOrDefaultAsync(m => m.Id == id);
-            return i == null ? null : ToItemDto(i);
+            
+            if (i == null) return null;
+            
+            var restaurantId = i.Category?.RestaurantId ?? Guid.Empty;
+            var activePromotions = await GetActiveItemPromotionsAsync(restaurantId);
+            
+            return ToItemDto(i, activePromotions);
         }
 
         public async Task<MenuItemDto> CreateItemAsync(CreateMenuItemDto dto)
@@ -201,27 +222,67 @@ namespace RestaurantApp.API.Modules.Menu.Services
             await _context.SaveChangesAsync(); return true;
         }
 
-        private static MenuItemDto ToItemDto(MenuItem i) => new()
+        private MenuItemDto ToItemDto(MenuItem i, List<Modules.Promotion.Models.Promotion> activePromotions)
         {
-            Id = i.Id,
-            CategoryId = i.CategoryId,
-            CategoryName = i.Category?.Name ?? "",
-            Name = i.Name,
-            Description = i.Description ?? "",
-            Price = i.BasePrice,
-            ImageUrl = i.ImageUrl,
-            Unit = i.Unit,
-            IsAvailable = i.IsAvailable,
-            SortOrder = i.SortOrder,
-            ItemType = i.ItemType,
-            ComboItems = i.ComboItems?.Where(c => c.SingleItem != null).Select(c => new MenuComboItemDto
+            var dto = new MenuItemDto
             {
-                Id = c.SingleItem!.Id,
-                Name = c.SingleItem.Name,
-                Price = c.SingleItem.BasePrice,
-                ImageUrl = c.SingleItem.ImageUrl,
-                Quantity = c.Quantity
-            }).ToList()
-        };
+                Id = i.Id,
+                CategoryId = i.CategoryId,
+                CategoryName = i.Category?.Name ?? "",
+                Name = i.Name,
+                Description = i.Description ?? "",
+                Price = i.BasePrice,
+                ImageUrl = i.ImageUrl,
+                Unit = i.Unit,
+                IsAvailable = i.IsAvailable,
+                SortOrder = i.SortOrder,
+                ItemType = i.ItemType,
+                ComboItems = i.ComboItems?.Where(c => c.SingleItem != null).Select(c => new MenuComboItemDto
+                {
+                    Id = c.SingleItem!.Id,
+                    Name = c.SingleItem.Name,
+                    Price = c.SingleItem.BasePrice,
+                    ImageUrl = c.SingleItem.ImageUrl,
+                    Quantity = c.Quantity
+                }).ToList()
+            };
+
+            // Calculate discounts
+            var applicablePromotions = activePromotions.Where(p =>
+            {
+                if (string.IsNullOrEmpty(p.MenuItemIds)) return false;
+                try
+                {
+                    var ids = JsonSerializer.Deserialize<List<string>>(p.MenuItemIds);
+                    return ids != null && ids.Contains(i.Id.ToString());
+                }
+                catch { return p.MenuItemIds.Contains(i.Id.ToString()); }
+            }).ToList();
+
+            if (applicablePromotions.Any())
+            {
+                // Find the best promotion (lowest price)
+                var bestPromo = applicablePromotions.OrderBy(p => 
+                {
+                    if (p.Type == PromotionType.PercentDiscount) return i.BasePrice * (1 - p.DiscountValue / 100);
+                    if (p.Type == PromotionType.FixedDiscount) return Math.Max(0, i.BasePrice - p.DiscountValue);
+                    return i.BasePrice;
+                }).First();
+
+                dto.DiscountType = bestPromo.Type;
+                dto.DiscountValue = bestPromo.DiscountValue;
+                
+                if (bestPromo.Type == PromotionType.PercentDiscount)
+                    dto.DiscountPrice = i.BasePrice * (1 - bestPromo.DiscountValue / 100);
+                else
+                    dto.DiscountPrice = Math.Max(0, i.BasePrice - bestPromo.DiscountValue);
+            }
+            else
+            {
+                dto.DiscountPrice = i.BasePrice;
+            }
+
+            return dto;
+        }
     }
 }
