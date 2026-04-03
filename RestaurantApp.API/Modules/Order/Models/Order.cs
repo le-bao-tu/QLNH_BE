@@ -63,7 +63,10 @@ namespace RestaurantApp.API.Modules.Order.Models
         /// <summary>Số lượng</summary>
         public int Quantity { get; set; } = 1;
 
-        /// <summary>Đơn giá tại thời điểm order (không thay đổi dù menu cập nhật)</summary>
+        /// <summary>Đơn giá gốc tại thời điểm order (chưa giảm giá)</summary>
+        public decimal OriginalPrice { get; set; }
+
+        /// <summary>Đơn giá thực tế tại thời điểm order (sau giảm giá, không thay đổi dù menu cập nhật)</summary>
         public decimal UnitPrice { get; set; }
 
         /// <summary>Thành tiền (quantity * unit_price)</summary>
