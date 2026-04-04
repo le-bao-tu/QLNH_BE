@@ -7,10 +7,10 @@ namespace RestaurantApp.API.Modules.Restaurant.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    public class RestaurantController : ControllerBase
+    public class RestaurantsController : ControllerBase
     {
         private readonly AppDbContext _ctx;
-        public RestaurantController(AppDbContext ctx) => _ctx = ctx;
+        public RestaurantsController(AppDbContext ctx) => _ctx = ctx;
         
         [HttpGet("{id}")]
         public async Task<IActionResult> Get(Guid id)
