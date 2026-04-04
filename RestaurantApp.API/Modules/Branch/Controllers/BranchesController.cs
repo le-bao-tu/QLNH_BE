@@ -7,10 +7,10 @@ namespace RestaurantApp.API.Modules.Branch.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    public class BranchController : ControllerBase
+    public class BranchesController : ControllerBase
     {
         private readonly AppDbContext _ctx;
-        public BranchController(AppDbContext ctx) => _ctx = ctx;
+        public BranchesController(AppDbContext ctx) => _ctx = ctx;
 
         [HttpGet("restaurant/{restaurantId}")]
         public async Task<IActionResult> GetByRestaurant(Guid restaurantId)

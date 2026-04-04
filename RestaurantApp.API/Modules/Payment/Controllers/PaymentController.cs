@@ -19,6 +19,18 @@ namespace RestaurantApp.API.Modules.Payment.Controllers
             return Ok(p);
         }
 
+        [HttpGet("recent/branch/{branchId}")]
+        public async Task<IActionResult> GetRecent(Guid branchId)
+        {
+            var p = await _ctx.Payments
+                .Include(x => x.Order)
+                .Where(x => x.Order.BranchId == branchId)
+                .OrderByDescending(x => x.CreatedAt)
+                .Take(50)
+                .ToListAsync();
+            return Ok(p);
+        }
+
         [HttpPost]
         public async Task<IActionResult> ProcessPayment(Models.Payment payment)
         {

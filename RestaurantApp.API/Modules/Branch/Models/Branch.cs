@@ -1,4 +1,5 @@
 using RestaurantApp.API.Common;
+using System.Text.Json.Serialization;
 
 namespace RestaurantApp.API.Modules.Branch.Models
 {
@@ -7,6 +8,8 @@ namespace RestaurantApp.API.Modules.Branch.Models
     {
         /// <summary>Nhà hàng sở hữu chi nhánh</summary>
         public Guid RestaurantId { get; set; }
+
+        [JsonIgnore]
         public Restaurant.Models.Restaurant? Restaurant { get; set; }
 
         /// <summary>Tên chi nhánh</summary>
