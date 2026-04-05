@@ -41,6 +41,9 @@ namespace RestaurantApp.API.Modules.Promotion.Models
         /// <summary>Menu Item được áp dụng</summary>
         public string? MenuItemIds { get; set; }
 
+        /// <summary>Danh sách chi nhánh áp dụng (JSON array of Guid strings). NULL = áp dụng tất cả chi nhánh</summary>
+        public string? BranchIds { get; set; }
+
         // Navigation
         public ICollection<VoucherCode> VoucherCodes { get; set; } = new List<VoucherCode>();
     }

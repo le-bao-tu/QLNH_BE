@@ -30,7 +30,9 @@ namespace RestaurantApp.API.Modules.Menu.DTOs
     public class CreateMenuItemDto
     {
         public Guid CategoryId { get; set; }
-        public Guid? BranchId { get; set; }
+        /// <summary>JSON array of branch Guid strings. NULL = áp dụng tất cả chi nhánh</summary>
+        public string? BranchIds { get; set; }
+        public Guid? RestaurantId { get; set; }
         public string Name { get; set; } = string.Empty;
         public string? Description { get; set; }
         public decimal Price { get; set; }
@@ -52,6 +54,8 @@ namespace RestaurantApp.API.Modules.Menu.DTOs
         public int? SortOrder { get; set; }
         public string? ItemType { get; set; }
         public List<Guid>? ComboItemIds { get; set; }
+        public string? BranchIds { get; set; }
+        public Guid? CategoryId { get; set; }
     }
 
     public class MenuItemDto
@@ -70,6 +74,7 @@ namespace RestaurantApp.API.Modules.Menu.DTOs
         public bool IsAvailable { get; set; }
         public int SortOrder { get; set; }
         public string ItemType { get; set; } = "single";
+        public string? BranchIds { get; set; }
         public List<MenuComboItemDto>? ComboItems { get; set; }
     }
 
