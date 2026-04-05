@@ -17,7 +17,7 @@ namespace RestaurantApp.API.Modules.Table.Controllers
             _tableService = tableService;
         }
 
-        [HttpGet("branch/{branchId}")]
+        [HttpGet("branch/{branchId?}")]
         public async Task<IActionResult> GetByBranch(Guid branchId)
         {
             var tables = await _tableService.GetByBranchAsync(branchId);

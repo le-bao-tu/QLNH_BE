@@ -163,7 +163,8 @@ namespace RestaurantApp.API.Modules.Menu.Services
                 Unit = dto.Unit ?? "phan",
                 SortOrder = dto.SortOrder,
                 IsAvailable = true,
-                ItemType = dto.ItemType ?? "single"
+                ItemType = dto.ItemType ?? "single",
+                BranchIds = dto.BranchIds
             };
 
             // Save item first to get the generated ID before adding combo children
@@ -199,6 +200,8 @@ namespace RestaurantApp.API.Modules.Menu.Services
             if (dto.IsAvailable.HasValue) item.IsAvailable = dto.IsAvailable.Value;
             if (dto.SortOrder.HasValue) item.SortOrder = dto.SortOrder.Value;
             if (dto.ItemType != null) item.ItemType = dto.ItemType;
+            if (dto.CategoryId != null) item.CategoryId = dto.CategoryId.Value;
+            if (!String.IsNullOrEmpty(dto.BranchIds)) item.BranchIds = dto.BranchIds;
             
             if (dto.ComboItemIds != null && item.ItemType == "combo")
             {
@@ -237,6 +240,7 @@ namespace RestaurantApp.API.Modules.Menu.Services
                 IsAvailable = i.IsAvailable,
                 SortOrder = i.SortOrder,
                 ItemType = i.ItemType,
+                BranchIds = i.BranchIds,
                 ComboItems = i.ComboItems?.Where(c => c.SingleItem != null).Select(c => new MenuComboItemDto
                 {
                     Id = c.SingleItem!.Id,

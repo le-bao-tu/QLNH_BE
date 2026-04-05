@@ -61,7 +61,7 @@ namespace RestaurantApp.API.Modules.Auth.Services
                 Email = dto.Email,
                 FullName = dto.FullName,
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password),
-                Role = "Owner"
+                Role = "owner"
             };
 
             // Create Restaurant
@@ -73,25 +73,25 @@ namespace RestaurantApp.API.Modules.Auth.Services
                 CreatedAt = DateTime.UtcNow
             };
 
-            // Create First Branch
-            var branch = new RestaurantApp.API.Modules.Branch.Models.Branch
-            {
-                Id = Guid.NewGuid(),
-                RestaurantId = restaurant.Id,
-                Name = "Chi nhánh 1 (Main)",
-                Address = "Chưa thiết lập",
-                Phone = "Chưa thiết lập",
-                IsActive = true,
-                CreatedAt = DateTime.UtcNow
-            };
+            //// Create First Branch
+            //var branch = new RestaurantApp.API.Modules.Branch.Models.Branch
+            //{
+            //    Id = Guid.NewGuid(),
+            //    RestaurantId = restaurant.Id,
+            //    Name = "Chi nhánh 1 (Main)",
+            //    Address = "Chưa thiết lập",
+            //    Phone = "Chưa thiết lập",
+            //    IsActive = true,
+            //    CreatedAt = DateTime.UtcNow
+            //};
 
             // Link user to restaurant and branch
             user.RestaurantId = restaurant.Id;
-            user.BranchId = branch.Id;
+            //user.BranchId = branch.Id;
 
             _context.Set<User>().Add(user);
             _context.Restaurants.Add(restaurant);
-            _context.Branches.Add(branch);
+            //_context.Branches.Add(branch);
 
             await _context.SaveChangesAsync();
 

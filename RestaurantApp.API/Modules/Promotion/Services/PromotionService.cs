@@ -4,10 +4,10 @@ using RestaurantApp.API.Modules.Promotion.Models;
 
 namespace RestaurantApp.API.Modules.Promotion.Services
 {
-    public record PromotionDto(Guid Id, Guid RestaurantId, string Name, string? Description, string Type, string ApplyTo, decimal DiscountValue, decimal MinOrderAmount, decimal? MaxDiscount, DateOnly StartDate, DateOnly EndDate, bool IsActive, string? MenuItemIds);
+    public record PromotionDto(Guid Id, Guid RestaurantId, string Name, string? Description, string Type, string ApplyTo, decimal DiscountValue, decimal MinOrderAmount, decimal? MaxDiscount, DateOnly StartDate, DateOnly EndDate, bool IsActive, string? MenuItemIds, string? BranchIds);
     public record VoucherDto(Guid Id, Guid PromotionId, string Code, int UsageLimit, int UsedCount, Guid? AssignedTo, DateTime? ExpiresAt, bool IsValid);
-    public record CreatePromotionDto(Guid RestaurantId, string Name, string? Description, string Type, string ApplyTo, decimal DiscountValue, decimal MinOrderAmount, decimal? MaxDiscount, DateOnly StartDate, DateOnly EndDate, string? MenuItemIds);
-    public record UpdatePromotionDto(string? Name, string? Description, string? Type, string? ApplyTo, decimal? DiscountValue, decimal? MinOrderAmount, decimal? MaxDiscount, DateOnly? StartDate, DateOnly? EndDate, bool? IsActive, string? MenuItemIds);
+    public record CreatePromotionDto(Guid RestaurantId, string Name, string? Description, string Type, string ApplyTo, decimal DiscountValue, decimal MinOrderAmount, decimal? MaxDiscount, DateOnly StartDate, DateOnly EndDate, string? MenuItemIds, string? BranchIds);
+    public record UpdatePromotionDto(string? Name, string? Description, string? Type, string? ApplyTo, decimal? DiscountValue, decimal? MinOrderAmount, decimal? MaxDiscount, DateOnly? StartDate, DateOnly? EndDate, bool? IsActive, string? MenuItemIds, string? BranchIds);
     public record CreateVoucherDto(Guid PromotionId, string Code, int UsageLimit, Guid? AssignedTo, DateTime? ExpiresAt);
 
     public record ValidateVoucherResultDto(Guid VoucherId, string Code, PromotionDto Promotion);
@@ -77,7 +77,8 @@ namespace RestaurantApp.API.Modules.Promotion.Services
                 MaxDiscount = dto.MaxDiscount,
                 StartDate = dto.StartDate,
                 EndDate = dto.EndDate,
-                MenuItemIds = dto.MenuItemIds
+                MenuItemIds = dto.MenuItemIds,
+                BranchIds = dto.BranchIds
             };
             _ctx.Promotions.Add(p);
             await _ctx.SaveChangesAsync();
@@ -99,6 +100,7 @@ namespace RestaurantApp.API.Modules.Promotion.Services
             if (dto.EndDate.HasValue) p.EndDate = dto.EndDate.Value;
             if (dto.IsActive.HasValue) p.IsActive = dto.IsActive.Value;
             p.MenuItemIds = dto.MenuItemIds;
+            p.BranchIds = dto.BranchIds;
             p.UpdatedAt = DateTime.UtcNow;
             await _ctx.SaveChangesAsync();
             return ToDto(p);
@@ -173,6 +175,6 @@ namespace RestaurantApp.API.Modules.Promotion.Services
             };
         }
 
-        private static PromotionDto ToDto(Models.Promotion p) => new(p.Id, p.RestaurantId, p.Name, p.Description, p.Type, p.ApplyTo, p.DiscountValue, p.MinOrderAmount, p.MaxDiscount, p.StartDate, p.EndDate, p.IsActive, p.MenuItemIds);
+        private static PromotionDto ToDto(Models.Promotion p) => new(p.Id, p.RestaurantId, p.Name, p.Description, p.Type, p.ApplyTo, p.DiscountValue, p.MinOrderAmount, p.MaxDiscount, p.StartDate, p.EndDate, p.IsActive, p.MenuItemIds, p.BranchIds);
     }
 }

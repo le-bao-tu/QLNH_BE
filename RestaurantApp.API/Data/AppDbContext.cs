@@ -354,7 +354,7 @@ namespace RestaurantApp.API.Data
                 e.ToTable("menu_items");
                 e.HasIndex(x => x.CategoryId).HasDatabaseName("idx_menu_items_category_id");
                 e.Property(x => x.BasePrice).HasColumnType("numeric(12,2)").HasComment("Giá mặc định của món");
-                e.Property(x => x.BranchId).HasComment("NULL = áp dụng cho tất cả chi nhánh");
+                e.Property(x => x.BranchIds).HasComment("JSON array of branch ids. NULL = áp dụng cho tất cả chi nhánh");
                 e.Property(x => x.IsAvailable).HasComment("FALSE khi món tạm hết hoặc không phục vụ");
                 e.HasOne(m => m.Category).WithMany(c => c.MenuItems).HasForeignKey(m => m.CategoryId).OnDelete(DeleteBehavior.Restrict);
             });

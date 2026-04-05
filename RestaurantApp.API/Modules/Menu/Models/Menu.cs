@@ -31,8 +31,8 @@ namespace RestaurantApp.API.Modules.Menu.Models
         public Guid CategoryId { get; set; }
         public MenuCategory? Category { get; set; }
 
-        /// <summary>NULL = áp dụng cho tất cả chi nhánh</summary>
-        public Guid? BranchId { get; set; }
+        /// <summary>Danh sách chi nhánh áp dụng (JSON array of Guid strings). NULL = áp dụng cho tất cả chi nhánh</summary>
+        public string? BranchIds { get; set; }
 
         /// <summary>Tên món ăn</summary>
         public string Name { get; set; } = string.Empty;

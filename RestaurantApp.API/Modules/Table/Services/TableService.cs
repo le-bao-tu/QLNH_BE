@@ -27,7 +27,7 @@ namespace RestaurantApp.API.Modules.Table.Services
         public async Task<List<TableDto>> GetByBranchAsync(Guid branchId)
         {
             var tables = await _context.Tables
-                .Where(t => t.BranchId == branchId)
+                .Where(t => t.BranchId == branchId || branchId == Guid.Empty)
                 .OrderBy(t => t.TableNumber)
                 .ToListAsync();
 
