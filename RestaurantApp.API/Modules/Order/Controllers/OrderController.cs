@@ -53,6 +53,7 @@ namespace RestaurantApp.API.Modules.Order.Controllers
         }
 
         [HttpPost]
+        [AllowAnonymous]
         public async Task<IActionResult> Create([FromBody] CreateOrderDto dto)
         {
             try
