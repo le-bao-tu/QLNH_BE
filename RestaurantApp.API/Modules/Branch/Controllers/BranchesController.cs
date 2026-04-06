@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using RestaurantApp.API.Data;
@@ -7,12 +8,14 @@ namespace RestaurantApp.API.Modules.Branch.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [AllowAnonymous]
     public class BranchesController : ControllerBase
     {
         private readonly AppDbContext _ctx;
         public BranchesController(AppDbContext ctx) => _ctx = ctx;
 
         [HttpGet("restaurant/{restaurantId}")]
+        [AllowAnonymous]
         public async Task<IActionResult> GetByRestaurant(Guid restaurantId)
         {
             var b = await _ctx.Branches.Where(x => x.RestaurantId == restaurantId).ToListAsync();
@@ -20,6 +23,7 @@ namespace RestaurantApp.API.Modules.Branch.Controllers
         }
 
         [HttpGet("{id}")]
+        [AllowAnonymous]
         public async Task<IActionResult> GetBranch(Guid id)
         {
             var b = await _ctx.Branches.FindAsync(id);

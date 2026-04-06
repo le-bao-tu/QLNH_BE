@@ -180,7 +180,6 @@ using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     db.Database.Migrate();
-    await DbInitializer.SeedAsync(db);
 }
 
 if (app.Environment.IsDevelopment())
@@ -201,6 +200,5 @@ app.UseCors("AllowFrontend");
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
-app.UseStaticFiles();
 
 app.Run();
