@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using RestaurantApp.API.Data;
 using RestaurantApp.API.Modules.Menu.DTOs;
 using RestaurantApp.API.Modules.Menu.Models;
@@ -190,8 +190,11 @@ namespace RestaurantApp.API.Modules.Menu.Services
 
         public async Task<MenuItemDto?> UpdateItemAsync(Guid id, UpdateMenuItemDto dto)
         {
-            var item = await _context.MenuItems.Include(m => m.ComboItems).FirstOrDefaultAsync(x => x.Id == id);
+            var item = await _context.MenuItems
+                .Include(m => m.ComboItems)
+                .FirstOrDefaultAsync(x => x.Id == id);
             if (item == null) return null;
+
             if (dto.Name != null) item.Name = dto.Name;
             if (dto.Description != null) item.Description = dto.Description;
             if (dto.Price.HasValue) item.BasePrice = dto.Price.Value;
@@ -201,19 +204,28 @@ namespace RestaurantApp.API.Modules.Menu.Services
             if (dto.SortOrder.HasValue) item.SortOrder = dto.SortOrder.Value;
             if (dto.ItemType != null) item.ItemType = dto.ItemType;
             if (dto.CategoryId != null) item.CategoryId = dto.CategoryId.Value;
-            if (!String.IsNullOrEmpty(dto.BranchIds)) item.BranchIds = dto.BranchIds;
-            
-            if (dto.ComboItemIds != null && item.ItemType == "combo")
-            {
-                _context.MenuItemCombos.RemoveRange(item.ComboItems);
-                foreach (var sId in dto.ComboItemIds)
-                {
-                    item.ComboItems.Add(new MenuItemCombo { ComboItemId = item.Id, SingleItemId = sId, Quantity = 1 });
-                }
-            }
+            if (!string.IsNullOrEmpty(dto.BranchIds)) item.BranchIds = dto.BranchIds;
 
             item.UpdatedAt = DateTime.UtcNow;
-            await _context.SaveChangesAsync();
+
+            if (dto.ComboItemIds != null && item.ItemType == "combo")
+            {
+                // Bước 1: Xóa hết combo cũ trước
+                _context.Set<MenuItemCombo>().RemoveRange(item.ComboItems);
+                await _context.SaveChangesAsync(); // ← commit delete trước
+
+                // Bước 2: Thêm mới
+                var newCombos = dto.ComboItemIds.Select(sId => new MenuItemCombo
+                {
+                    ComboItemId = item.Id,
+                    SingleItemId = sId,
+                    Quantity = 1
+                }).ToList();
+
+                await _context.Set<MenuItemCombo>().AddRangeAsync(newCombos);
+            }
+
+            await _context.SaveChangesAsync(); // ← commit update + insert mới
             return await GetItemByIdAsync(id);
         }
 
