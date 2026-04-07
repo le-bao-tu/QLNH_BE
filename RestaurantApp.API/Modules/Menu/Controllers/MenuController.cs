@@ -129,8 +129,7 @@ namespace RestaurantApp.API.Modules.Menu.Controllers
             }
 
             // Lấy base URL từ request
-            var baseUrl = $"{Request.Scheme}://{Request.Host}";
-            var imageUrl = $"{baseUrl}/uploads/menu/{fileName}";
+            var imageUrl = $"/uploads/menu/{fileName}";
 
             return Ok(new { url = imageUrl });
         }
