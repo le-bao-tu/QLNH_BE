@@ -130,7 +130,15 @@ namespace RestaurantApp.API.Modules.Auth.Services
             };
 
             _context.Set<User>().Add(user);
-            await _context.SaveChangesAsync();
+
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch (DbUpdateException ex)
+            {
+                throw new Exception(ex.InnerException?.Message ?? ex.Message);
+            }
 
             return MapToDetail(user);
         }

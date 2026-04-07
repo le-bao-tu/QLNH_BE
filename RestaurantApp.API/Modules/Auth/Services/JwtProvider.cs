@@ -24,10 +24,10 @@ namespace RestaurantApp.API.Modules.Auth.Services
 
             var claims = new List<Claim>
             {
-                new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
-                new Claim(ClaimTypes.Name, user.Username),
-                new Claim(ClaimTypes.Email, user.Email),
-                new Claim(ClaimTypes.Role, user.Role),
+                new Claim("userId", user.Id.ToString()),
+                new Claim("username", user.Username),
+                new Claim("email", user.Email),
+                new Claim("role", user.Role),
                 new Claim("fullName", user.FullName),
                 new Claim("restaurantId", user.RestaurantId?.ToString() ?? ""),
                 new Claim("branchId", user.BranchId?.ToString() ?? "")

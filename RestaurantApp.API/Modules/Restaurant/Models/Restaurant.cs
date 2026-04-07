@@ -32,6 +32,15 @@ namespace RestaurantApp.API.Modules.Restaurant.Models
         /// <summary>Email liên hệ</summary>
         public string? Email { get; set; }
 
+        /// <summary> Tên ngân hàng </summary>
+        public string? BankId { get; set; }
+
+        /// <summary> Số tài khoản </summary>
+        public string? BankNumber { get; set; }
+
+        /// <summary> Chủ tài khoản </summary>
+        public string? BankOwner { get; set; }
+
         // Navigation
         public ICollection<Branch.Models.Branch> Branches { get; set; } = new List<Branch.Models.Branch>();
     }
