@@ -57,7 +57,7 @@ namespace RestaurantApp.API.Modules.Payment.Controllers
             }
 
             await _ctx.SaveChangesAsync();
-            return Ok(payment);
+            return Ok();
         }
     }
 }

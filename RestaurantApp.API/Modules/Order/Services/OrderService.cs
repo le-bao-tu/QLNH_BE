@@ -10,6 +10,7 @@ namespace RestaurantApp.API.Modules.Order.Services
 {
     public interface IOrderService
     {
+        Task<List<OrderSummaryDto>> GetAllOrders(Guid branchId);
         Task<List<OrderSummaryDto>> GetActiveOrdersAsync(Guid branchId);
         Task<List<OrderDto>> GetByTableAsync(Guid tableId);
         Task<OrderDto?> GetByIdAsync(Guid id);
@@ -67,6 +68,22 @@ namespace RestaurantApp.API.Modules.Order.Services
             .Include(o => o.Table)
             .Include(o => o.OrderItems)
                 .ThenInclude(oi => oi.MenuItem);
+
+        public async Task<List<OrderSummaryDto>> GetAllOrders(Guid branchId)
+        {
+            return await _context.Orders.Where(o => o.BranchId == branchId)
+                .OrderByDescending(o => o.CreatedAt)
+                .Select(o => new OrderSummaryDto
+                {
+                    Id = o.Id,
+                    TableNumber = o.Table!.TableNumber,
+                    Status = o.Status,
+                    Subtotal = o.Subtotal,
+                    TotalAmount = o.TotalAmount,
+                    ItemCount = o.OrderItems.Count,
+                    CreatedAt = o.CreatedAt
+                }).ToListAsync();
+        }
 
         public async Task<List<OrderSummaryDto>> GetActiveOrdersAsync(Guid branchId)
         {
