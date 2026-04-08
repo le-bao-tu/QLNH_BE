@@ -20,6 +20,9 @@ namespace RestaurantApp.API.Modules.Order.Models
         /// <summary>Nhân viên tạo đơn</summary>
         public Guid? EmployeeId { get; set; }
 
+        /// <summary></summary>
+        public Guid RestaurantId { get; set; }
+
         /// <summary>Trạng thái đơn: pending/preparing/ready/served/paid/cancelled</summary>
         public string Status { get; set; } = OrderStatus.Pending;
 

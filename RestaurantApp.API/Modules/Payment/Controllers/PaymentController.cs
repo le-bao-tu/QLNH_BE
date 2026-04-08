@@ -20,11 +20,23 @@ namespace RestaurantApp.API.Modules.Payment.Controllers
         }
 
         [HttpGet("recent/branch/{branchId}")]
-        public async Task<IActionResult> GetRecent(Guid branchId)
+        public async Task<IActionResult> GetRecentInBranch(Guid branchId)
         {
             var p = await _ctx.Payments
                 .Include(x => x.Order)
-                .Where(x => x.Order.BranchId == branchId)
+                .Where(x => x.Order!.BranchId == branchId)
+                .OrderByDescending(x => x.CreatedAt)
+                .Take(50)
+                .ToListAsync();
+            return Ok(p);
+        }
+
+        [HttpGet("recent/restaurant/{restaurantId}")]
+        public async Task<IActionResult> GetRecentInRestaurant(Guid restaurantId)
+        {
+            var p = await _ctx.Payments
+                .Include(x => x.Order)
+                .Where(x => x.Order!.RestaurantId == restaurantId)
                 .OrderByDescending(x => x.CreatedAt)
                 .Take(50)
                 .ToListAsync();
@@ -44,17 +56,12 @@ namespace RestaurantApp.API.Modules.Payment.Controllers
 
             _ctx.Payments.Add(payment);
 
-            // Update order status if total payment covers the order
-            var totalPaid = await _ctx.Payments.Where(p => p.OrderId == payment.OrderId && p.Status == "completed").SumAsync(p => p.Amount) + payment.Amount;
-            
-            if (totalPaid >= order.TotalAmount)
-            {
-                order.Status = "paid";
-                
-                // Update table status back to available
-                var table = await _ctx.Tables.FindAsync(order.TableId);
-                if (table != null) table.Status = "available";
-            }
+            // Update order status to paid
+            order.Status = "paid";
+
+            // Update table status back to available
+            var table = await _ctx.Tables.FindAsync(order.TableId);
+            if (table != null) table.Status = "available";
 
             await _ctx.SaveChangesAsync();
             return Ok();

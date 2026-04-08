@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using RestaurantApp.API.Data;
+using RestaurantApp.API.Modules.Branch.Models;
 using RestaurantApp.API.Modules.Menu.Models;
 using RestaurantApp.API.Modules.Order.DTOs;
 using RestaurantApp.API.Modules.Order.Models;
@@ -11,6 +12,7 @@ namespace RestaurantApp.API.Modules.Order.Services
     public interface IOrderService
     {
         Task<List<OrderSummaryDto>> GetAllOrders(Guid branchId);
+        Task<List<OrderSummaryDto>> GetOrdersByRestaurant(Guid branchId);
         Task<List<OrderSummaryDto>> GetActiveOrdersAsync(Guid branchId);
         Task<List<OrderDto>> GetByTableAsync(Guid tableId);
         Task<OrderDto?> GetByIdAsync(Guid id);
@@ -72,6 +74,22 @@ namespace RestaurantApp.API.Modules.Order.Services
         public async Task<List<OrderSummaryDto>> GetAllOrders(Guid branchId)
         {
             return await _context.Orders.Where(o => o.BranchId == branchId)
+                .OrderByDescending(o => o.CreatedAt)
+                .Select(o => new OrderSummaryDto
+                {
+                    Id = o.Id,
+                    TableNumber = o.Table!.TableNumber,
+                    Status = o.Status,
+                    Subtotal = o.Subtotal,
+                    TotalAmount = o.TotalAmount,
+                    ItemCount = o.OrderItems.Count,
+                    CreatedAt = o.CreatedAt
+                }).ToListAsync();
+        }
+
+        public async Task<List<OrderSummaryDto>> GetOrdersByRestaurant(Guid restaurantId)
+        {
+            return await _context.Orders.Where(o => o.RestaurantId == restaurantId)
                 .OrderByDescending(o => o.CreatedAt)
                 .Select(o => new OrderSummaryDto
                 {
@@ -180,7 +198,8 @@ namespace RestaurantApp.API.Modules.Order.Services
                 GuestCount = dto.GuestCount,
                 Note = dto.Note,
                 Status = OrderStatus.Pending,
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = DateTime.UtcNow,
+                RestaurantId = dto.RestaurantId
             };
 
             foreach (var item in dto.Items)

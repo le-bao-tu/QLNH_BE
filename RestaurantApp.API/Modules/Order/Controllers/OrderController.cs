@@ -25,9 +25,16 @@ namespace RestaurantApp.API.Modules.Order.Controllers
         }
 
         [HttpGet("branch/{branchId}")]
-        public async Task<IActionResult> GetAll(Guid branchId)
+        public async Task<IActionResult> GetOrdersByBranch(Guid branchId)
         {
             var orders = await _orderService.GetAllOrders(branchId);
+            return Ok(orders);
+        }
+
+        [HttpGet("restaurant/{restaurantId}")]
+        public async Task<IActionResult> GetOrdersByRestaurent(Guid restaurantId)
+        {
+            var orders = await _orderService.GetOrdersByRestaurant(restaurantId);
             return Ok(orders);
         }
 

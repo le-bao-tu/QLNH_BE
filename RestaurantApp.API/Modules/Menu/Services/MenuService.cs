@@ -1,8 +1,10 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.EntityFrameworkCore;
 using RestaurantApp.API.Data;
 using RestaurantApp.API.Modules.Menu.DTOs;
 using RestaurantApp.API.Modules.Menu.Models;
 using RestaurantApp.API.Modules.Promotion.Models;
+using RestaurantApp.API.Modules.Restaurant.Models;
 using System.Text.Json;
 
 namespace RestaurantApp.API.Modules.Menu.Services
@@ -16,6 +18,7 @@ namespace RestaurantApp.API.Modules.Menu.Services
 
         Task<List<MenuItemDto>> GetItemsByCategoryAsync(Guid categoryId);
         Task<List<MenuItemDto>> GetAllItemsByRestaurantAsync(Guid restaurantId);
+        Task<List<MenuItemDto>> GetAllItemsByBranchAsync(Guid branchId);
         Task<MenuItemDto?> GetItemByIdAsync(Guid id);
         Task<MenuItemDto> CreateItemAsync(CreateMenuItemDto dto);
         Task<MenuItemDto?> UpdateItemAsync(Guid id, UpdateMenuItemDto dto);
@@ -100,7 +103,7 @@ namespace RestaurantApp.API.Modules.Menu.Services
         {
             var category = await _context.MenuCategories.FindAsync(categoryId);
             var restaurantId = category?.RestaurantId ?? Guid.Empty;
-            var activePromotions = await GetActiveItemPromotionsAsync(restaurantId);
+            var activePromotions = await GetActiveItemPromotionsAsync(restaurantId, Guid.Empty);
 
             return await _context.MenuItems
                 .Include(i => i.Category)
@@ -111,7 +114,7 @@ namespace RestaurantApp.API.Modules.Menu.Services
 
         public async Task<List<MenuItemDto>> GetAllItemsByRestaurantAsync(Guid restaurantId)
         {
-            var activePromotions = await GetActiveItemPromotionsAsync(restaurantId);
+            var activePromotions = await GetActiveItemPromotionsAsync(restaurantId, Guid.Empty);
 
             var menuItems = await _context.MenuItems
                 .Include(i => i.Category)
@@ -123,11 +126,31 @@ namespace RestaurantApp.API.Modules.Menu.Services
             return menuItems.Select(i => ToItemDto(i, activePromotions)).ToList();
         }
 
-        private async Task<List<Modules.Promotion.Models.Promotion>> GetActiveItemPromotionsAsync(Guid restaurantId)
+        public async Task<List<MenuItemDto>> GetAllItemsByBranchAsync(Guid branchId)
+        {
+            var branch = _context.Branches.Find(branchId);
+
+            if (branch == null) throw new Exception("Không tìm thấy chi nhánh với id: " + branchId);
+
+            var activePromotions = await GetActiveItemPromotionsAsync(branch.RestaurantId, branchId);
+
+            var menuItems = await _context.MenuItems
+                .Include(i => i.Category)
+                .Include(i => i.ComboItems).ThenInclude(c => c.SingleItem)
+                .Where(i => i.BranchIds!.Contains(branchId.ToString()) && !i.IsDeleted)
+                .OrderBy(i => i.Category!.SortOrder).ThenBy(i => i.SortOrder)
+                .ToListAsync();
+
+            return menuItems.Select(i => ToItemDto(i, activePromotions)).ToList();
+        }
+
+
+        private async Task<List<Modules.Promotion.Models.Promotion>> GetActiveItemPromotionsAsync(Guid restaurantId, Guid branchId)
         {
             var today = DateOnly.FromDateTime(DateTime.Today);
             return await _context.Promotions
-                .Where(p => p.RestaurantId == restaurantId
+                .Where(p => (p.RestaurantId == restaurantId || restaurantId == Guid.Empty) 
+                    && (p.BranchIds!.Contains(branchId.ToString()) || branchId == Guid.Empty)
                     && p.IsActive
                     && !p.IsDeleted
                     && p.ApplyTo == "item"
@@ -146,7 +169,7 @@ namespace RestaurantApp.API.Modules.Menu.Services
             if (i == null) return null;
             
             var restaurantId = i.Category?.RestaurantId ?? Guid.Empty;
-            var activePromotions = await GetActiveItemPromotionsAsync(restaurantId);
+            var activePromotions = await GetActiveItemPromotionsAsync(restaurantId, Guid.Empty);
             
             return ToItemDto(i, activePromotions);
         }
