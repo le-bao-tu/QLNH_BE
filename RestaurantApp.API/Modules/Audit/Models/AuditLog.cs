@@ -8,6 +8,12 @@ namespace RestaurantApp.API.Modules.Audit.Models
         /// <summary>Người thực hiện (user_id)</summary>
         public Guid? UserId { get; set; }
 
+        /// <summary>Chi nhánh nhận diện từ người thực hiện</summary>
+        public Guid? BranchId { get; set; }
+
+        /// <summary>Nhà hàng nhận diện từ người thực hiện</summary>
+        public Guid? RestaurantId { get; set; }
+
         /// <summary>Hành động: CREATE / UPDATE / DELETE / LOGIN / LOGOUT</summary>
         public string Action { get; set; } = string.Empty;
 

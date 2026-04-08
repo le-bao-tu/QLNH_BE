@@ -67,11 +67,18 @@ namespace RestaurantApp.API.Data
                 var userIdStr = _httpContextAccessor.HttpContext?.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value 
                                 ?? _httpContextAccessor.HttpContext?.User?.FindFirst("nameid")?.Value;
                 
+                var branchIdStr = _httpContextAccessor.HttpContext?.User?.FindFirst("branchId")?.Value;
+                var restaurantIdStr = _httpContextAccessor.HttpContext?.User?.FindFirst("restaurantId")?.Value;
+                
                 Guid? userId = Guid.TryParse(userIdStr, out var g) ? g : null;
+                Guid? branchId = Guid.TryParse(branchIdStr, out var b) ? b : null;
+                Guid? restaurantId = Guid.TryParse(restaurantIdStr, out var r) ? r : null;
 
                 var auditEntry = new AuditEntry(entry)
                 {
                     UserId = userId,
+                    BranchId = branchId,
+                    RestaurantId = restaurantId,
                     Module = entry.Entity.GetType().Name,
                     IpAddress = _httpContextAccessor.HttpContext?.Connection?.RemoteIpAddress?.ToString(),
                     UserAgent = _httpContextAccessor.HttpContext?.Request?.Headers["User-Agent"].ToString()
@@ -81,6 +88,11 @@ namespace RestaurantApp.API.Data
                 foreach (var property in entry.Properties)
                 {
                     string propertyName = property.Metadata.Name;
+                    
+                    // Bỏ qua các trường nhạy cảm
+                    if (propertyName.Contains("PasswordHash") || propertyName.Contains("Token"))
+                        continue;
+
                     if (property.Metadata.IsPrimaryKey())
                     {
                         auditEntry.KeyValues[propertyName] = property.CurrentValue!;
@@ -90,19 +102,19 @@ namespace RestaurantApp.API.Data
                     switch (entry.State)
                     {
                         case EntityState.Added:
-                            auditEntry.AuditType = "CREATE";
+                            auditEntry.AuditType = "Tạo mới";
                             auditEntry.NewValues[propertyName] = property.CurrentValue!;
                             break;
 
                         case EntityState.Deleted:
-                            auditEntry.AuditType = "DELETE";
+                            auditEntry.AuditType = "Xoá";
                             auditEntry.OldValues[propertyName] = property.OriginalValue!;
                             break;
 
                         case EntityState.Modified:
                             if (property.IsModified)
                             {
-                                auditEntry.AuditType = "UPDATE";
+                                auditEntry.AuditType = "Cập nhật";
                                 auditEntry.OldValues[propertyName] = property.OriginalValue!;
                                 auditEntry.NewValues[propertyName] = property.CurrentValue!;
                             }
@@ -152,6 +164,8 @@ namespace RestaurantApp.API.Data
 
             public Microsoft.EntityFrameworkCore.ChangeTracking.EntityEntry Entry { get; }
             public Guid? UserId { get; set; }
+            public Guid? BranchId { get; set; }
+            public Guid? RestaurantId { get; set; }
             public string Module { get; set; } = string.Empty;
             public string AuditType { get; set; } = string.Empty;
             public string? IpAddress { get; set; }
@@ -167,6 +181,8 @@ namespace RestaurantApp.API.Data
             {
                 var audit = new AuditLog();
                 audit.UserId = UserId;
+                audit.BranchId = BranchId;
+                audit.RestaurantId = RestaurantId;
                 audit.Action = AuditType;
                 audit.Module = Module;
                 audit.CreatedAt = DateTime.UtcNow;
