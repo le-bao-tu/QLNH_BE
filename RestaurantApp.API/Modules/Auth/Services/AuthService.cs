@@ -143,11 +143,17 @@ namespace RestaurantApp.API.Modules.Auth.Services
             return MapToDetail(user);
         }
 
-        /// <summary>Lấy tất cả tài khoản thuộc một nhà hàng</summary>
-        public async Task<List<UserDetailDto>> GetUsersByRestaurantAsync(Guid restaurantId)
+        /// <summary>Lấy tất cả tài khoản thuộc một nhà hàng, có thể lọc theo chi nhánh</summary>
+        public async Task<List<UserDetailDto>> GetUsersByRestaurantAsync(Guid restaurantId, Guid? branchId = null)
         {
-            var users = await _context.Set<User>()
-                .Where(u => u.RestaurantId == restaurantId)
+            var query = _context.Set<User>().Where(u => u.RestaurantId == restaurantId);
+            
+            if (branchId.HasValue)
+            {
+                query = query.Where(u => u.BranchId == branchId.Value);
+            }
+
+            var users = await query
                 .OrderBy(u => u.Role).ThenBy(u => u.FullName)
                 .ToListAsync();
 
