@@ -82,11 +82,11 @@ namespace RestaurantApp.API.Modules.Auth.Controllers
         /// <summary>Lấy danh sách tài khoản thuộc nhà hàng</summary>
         [HttpGet("users")]
         [Authorize]
-        public async Task<IActionResult> GetUsers([FromQuery] Guid restaurantId)
+        public async Task<IActionResult> GetUsers([FromQuery] Guid restaurantId, [FromQuery] Guid? branchId = null)
         {
             try
             {
-                var users = await _authService.GetUsersByRestaurantAsync(restaurantId);
+                var users = await _authService.GetUsersByRestaurantAsync(restaurantId, branchId);
                 return Ok(users);
             }
             catch (Exception ex)
