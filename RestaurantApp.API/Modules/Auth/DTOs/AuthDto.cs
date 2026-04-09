@@ -22,6 +22,15 @@ namespace RestaurantApp.API.Modules.Auth.DTOs
         public Guid BranchId { get; set; }
     }
 
+    public class UpdateStaffDto
+    {
+        public string? Email { get; set; }
+        public string? Password { get; set; }
+        public string? FullName { get; set; }
+        public string? Role { get; set; }
+        public Guid? BranchId { get; set; }
+    }
+
     public class LoginDto
     {
         public string Username { get; set; } = string.Empty;

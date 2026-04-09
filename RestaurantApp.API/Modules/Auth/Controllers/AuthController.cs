@@ -95,7 +95,6 @@ namespace RestaurantApp.API.Modules.Auth.Controllers
             }
         }
 
-        /// <summary>Xóa hoặc vô hiệu hóa tài khoản</summary>
         [HttpDelete("users/{userId}")]
         [Authorize]
         public async Task<IActionResult> DeleteUser(Guid userId)
@@ -104,6 +103,23 @@ namespace RestaurantApp.API.Modules.Auth.Controllers
             {
                 await _authService.DeleteUserAsync(userId);
                 return Ok(new { message = "Đã xóa tài khoản" });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
+        /// <summary>Cập nhật thông tin tài khoản</summary>
+        [HttpPut("users/{userId}")]
+        [Authorize]
+        public async Task<IActionResult> UpdateUser(Guid userId, [FromBody] UpdateStaffDto dto)
+        {
+            try
+            {
+                var user = await _authService.UpdateUserAsync(userId, dto);
+                if (user == null) return NotFound();
+                return Ok(user);
             }
             catch (Exception ex)
             {
