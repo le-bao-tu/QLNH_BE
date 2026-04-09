@@ -26,7 +26,7 @@ namespace RestaurantApp.API.Modules.Payment.Controllers
                 .Include(x => x.Order)
                 .Where(x => x.Order!.BranchId == branchId)
                 .OrderByDescending(x => x.CreatedAt)
-                .Take(50)
+                .Take(1000)
                 .ToListAsync();
             return Ok(p);
         }
@@ -38,7 +38,7 @@ namespace RestaurantApp.API.Modules.Payment.Controllers
                 .Include(x => x.Order)
                 .Where(x => x.Order!.RestaurantId == restaurantId)
                 .OrderByDescending(x => x.CreatedAt)
-                .Take(50)
+                .Take(1000)
                 .ToListAsync();
             return Ok(p);
         }
