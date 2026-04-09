@@ -160,6 +160,29 @@ namespace RestaurantApp.API.Modules.Auth.Services
             return users.Select(MapToDetail).ToList();
         }
 
+        /// <summary>Cập nhật thông tin tài khoản</summary>
+        public async Task<UserDetailDto?> UpdateUserAsync(Guid userId, UpdateStaffDto dto)
+        {
+            var user = await _context.Set<User>().FindAsync(userId);
+            if (user == null) return null;
+
+            if (user.Role == "Owner") 
+                 throw new Exception("Không thể cập nhật tài khoản Owner qua chức năng này");
+
+            if (!string.IsNullOrEmpty(dto.Email)) user.Email = dto.Email;
+            if (!string.IsNullOrEmpty(dto.FullName)) user.FullName = dto.FullName;
+            if (!string.IsNullOrEmpty(dto.Role)) user.Role = dto.Role;
+            if (dto.BranchId.HasValue) user.BranchId = dto.BranchId.Value;
+
+            if (!string.IsNullOrEmpty(dto.Password))
+            {
+                user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password);
+            }
+
+            await _context.SaveChangesAsync();
+            return MapToDetail(user);
+        }
+
         /// <summary>Xóa tài khoản nhân viên</summary>
         public async Task DeleteUserAsync(Guid userId)
         {

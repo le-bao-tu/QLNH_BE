@@ -8,6 +8,7 @@ namespace RestaurantApp.API.Modules.Auth.Services
         Task<string> LoginAsync(LoginDto dto);
         Task<UserDetailDto> CreateStaffAsync(CreateStaffDto dto);
         Task<List<UserDetailDto>> GetUsersByRestaurantAsync(Guid restaurantId, Guid? branchId = null);
+        Task<UserDetailDto?> UpdateUserAsync(Guid userId, UpdateStaffDto dto);
         Task DeleteUserAsync(Guid userId);
     }
 }
