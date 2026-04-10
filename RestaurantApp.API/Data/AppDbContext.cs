@@ -294,7 +294,6 @@ namespace RestaurantApp.API.Data
             {
                 e.ToTable("users");
                 e.HasIndex(x => x.Username).IsUnique().HasDatabaseName("idx_users_username");
-                e.HasIndex(x => x.Email).IsUnique().HasDatabaseName("idx_users_email");
                 e.Property(x => x.Username).HasComment("Tên đăng nhập");
                 e.Property(x => x.Email).HasComment("Email đăng nhập");
                 e.Property(x => x.Role).HasComment("Vai trò: Admin/Manager/Staff");
