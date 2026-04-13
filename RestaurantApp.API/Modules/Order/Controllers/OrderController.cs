@@ -32,6 +32,7 @@ namespace RestaurantApp.API.Modules.Order.Controllers
         }
 
         [HttpGet("table/{tableId}")]
+        [AllowAnonymous]
         public async Task<IActionResult> GetByTable(Guid tableId)
         {
             var orders = await _orderService.GetByTableAsync(tableId);
@@ -66,11 +67,13 @@ namespace RestaurantApp.API.Modules.Order.Controllers
         }
 
         [HttpPost("{id}/items")]
+        [AllowAnonymous]
         public async Task<IActionResult> AddItem(Guid id, [FromBody] AddOrderItemDto dto)
         {
             try
             {
-                var order = await _orderService.AddItemAsync(id, dto);
+                var staffId = GetCurrentUserId();
+                var order = await _orderService.AddItemAsync(id, dto, staffId);
                 return order == null ? NotFound() : Ok(order);
             }
             catch (Exception ex) { return BadRequest(new { message = ex.Message }); }
@@ -88,6 +91,27 @@ namespace RestaurantApp.API.Modules.Order.Controllers
         {
             var success = await _orderService.UpdateItemStatusAsync(itemId, dto.Status);
             return success ? Ok(new { message = "Đã cập nhật trạng thái món" }) : NotFound();
+        }
+        
+        [HttpPost("{id}/confirm")]
+        public async Task<IActionResult> ConfirmOrder(Guid id)
+        {
+            var order = await _orderService.ConfirmOrderAsync(id);
+            return order == null ? NotFound() : Ok(order);
+        }
+
+        [HttpPost("items/{itemId}/confirm")]
+        public async Task<IActionResult> ConfirmItem(Guid itemId)
+        {
+            var success = await _orderService.ConfirmItemAsync(itemId);
+            return success ? Ok(new { message = "Đã xác nhận món ăn" }) : NotFound();
+        }
+
+        [HttpPost("{id}/send-to-kitchen")]
+        public async Task<IActionResult> SendToKitchen(Guid id)
+        {
+            var success = await _orderService.SendToKitchenAsync(id);
+            return success ? Ok(new { message = "Đã gửi yêu cầu vào bếp" }) : NotFound();
         }
 
         [HttpDelete("{id}")]
