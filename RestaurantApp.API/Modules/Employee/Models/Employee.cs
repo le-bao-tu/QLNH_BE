@@ -22,7 +22,7 @@ namespace RestaurantApp.API.Modules.Employee.Models
         public string? Email { get; set; }
 
         /// <summary>Vai trò: owner / manager / cashier / waiter / chef / bartender</summary>
-        public string Role { get; set; } = EmployeeRole.Waiter;
+        public Guid RoleId { get; set; }
 
         /// <summary>Lương theo giờ</summary>
         public decimal HourlyRate { get; set; } = 0;

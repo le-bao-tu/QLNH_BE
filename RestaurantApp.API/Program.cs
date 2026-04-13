@@ -120,6 +120,10 @@ builder.Services.AddScoped<RestaurantApp.API.Modules.Inventory.Services.IInvento
 builder.Services.AddScoped<RestaurantApp.API.Modules.Promotion.Services.IPromotionService,
     RestaurantApp.API.Modules.Promotion.Services.PromotionService>();
 
+// Role
+builder.Services.AddScoped<RestaurantApp.API.Modules.Role.Services.IRoleService,
+    RestaurantApp.API.Modules.Role.Services.RoleService>();
+
 // 6. AutoMapper
 builder.Services.AddAutoMapper(Assembly.GetExecutingAssembly());
 

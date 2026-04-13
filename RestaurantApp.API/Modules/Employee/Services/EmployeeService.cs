@@ -4,8 +4,8 @@ using RestaurantApp.API.Modules.Employee.Models;
 
 namespace RestaurantApp.API.Modules.Employee.Services
 {
-    public record EmployeeDto(Guid Id, Guid BranchId, string FullName, string? Phone, string? Email, string Role, decimal HourlyRate, DateOnly? HiredAt, string? AvatarUrl, DateTime CreatedAt);
-    public record CreateEmployeeDto(Guid BranchId, string FullName, string? Phone, string? Email, string Role, decimal HourlyRate, DateOnly? HiredAt, string? Username = null, string? Password = null);
+    public record EmployeeDto(Guid Id, Guid BranchId, string FullName, string? Phone, string? Email, Guid? RoleId, decimal HourlyRate, DateOnly? HiredAt, string? AvatarUrl, DateTime CreatedAt);
+    public record CreateEmployeeDto(Guid BranchId, string FullName, string? Phone, string? Email, Guid? RoleId, decimal HourlyRate, DateOnly? HiredAt, string? Username = null, string? Password = null);
     public record ShiftDto(Guid Id, Guid EmployeeId, string EmployeeName, DateOnly ShiftDate, TimeOnly StartTime, TimeOnly EndTime, DateTime? ActualStart, DateTime? ActualEnd, string Status, string? Note);
     public record CreateShiftDto(Guid BranchId, Guid EmployeeId, DateOnly ShiftDate, TimeOnly StartTime, TimeOnly EndTime, string? Note);
 
@@ -43,7 +43,7 @@ namespace RestaurantApp.API.Modules.Employee.Services
             {
                 Id = Guid.NewGuid(),
                 BranchId = dto.BranchId, FullName = dto.FullName, Phone = dto.Phone,
-                Email = dto.Email, Role = dto.Role, HourlyRate = dto.HourlyRate, HiredAt = dto.HiredAt,
+                Email = dto.Email, RoleId = dto.RoleId!.Value, HourlyRate = dto.HourlyRate, HiredAt = dto.HiredAt,
                 CreatedAt = DateTime.UtcNow
             };
             _ctx.Employees.Add(e);
@@ -58,7 +58,7 @@ namespace RestaurantApp.API.Modules.Employee.Services
                     Email = dto.Email ?? $"{dto.Username}@restaurant.com",
                     FullName = dto.FullName,
                     PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password),
-                    Role = dto.Role // manager / cashier / waiter / chef
+                    RoleId = dto.RoleId!.Value
                 };
                 _ctx.Users.Add(user);
             }
@@ -72,7 +72,7 @@ namespace RestaurantApp.API.Modules.Employee.Services
             var e = await _ctx.Employees.FindAsync(id);
             if (e == null) return null;
             e.FullName = dto.FullName; e.Phone = dto.Phone; e.Email = dto.Email;
-            e.Role = dto.Role; e.HourlyRate = dto.HourlyRate; e.HiredAt = dto.HiredAt;
+            e.RoleId = dto.RoleId!.Value; e.HourlyRate = dto.HourlyRate; e.HiredAt = dto.HiredAt;
             e.UpdatedAt = DateTime.UtcNow;
             await _ctx.SaveChangesAsync();
             return ToDto(e);
@@ -128,7 +128,7 @@ namespace RestaurantApp.API.Modules.Employee.Services
             return ToShiftDto(shift);
         }
 
-        private static EmployeeDto ToDto(Models.Employee e) => new(e.Id, e.BranchId, e.FullName, e.Phone, e.Email, e.Role, e.HourlyRate, e.HiredAt, e.AvatarUrl, e.CreatedAt);
+        private static EmployeeDto ToDto(Models.Employee e) => new(e.Id, e.BranchId, e.FullName, e.Phone, e.Email, e.RoleId, e.HourlyRate, e.HiredAt, e.AvatarUrl, e.CreatedAt);
         private static ShiftDto ToShiftDto(Models.Shift s) => new(s.Id, s.EmployeeId, s.Employee?.FullName ?? "", s.ShiftDate, s.StartTime, s.EndTime, s.ActualStart, s.ActualEnd, s.Status, s.Note);
     }
 }

@@ -29,7 +29,7 @@ namespace RestaurantApp.API.Modules.Auth.Services
             }
 
             // Với Owner: luôn tra cứu nhà hàng theo OwnerId để tránh sai do seed data
-            if (user.Role == "Owner")
+            if (user.IsOwner)
             {
                 var realRestaurant = await _context.Restaurants
                     .FirstOrDefaultAsync(r => r.OwnerId == user.Id);
@@ -61,7 +61,8 @@ namespace RestaurantApp.API.Modules.Auth.Services
                 Email = dto.Email,
                 FullName = dto.FullName,
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password),
-                Role = "owner"
+                RoleId = Guid.Empty,
+                IsOwner = true,
             };
 
             // Create Restaurant
@@ -116,6 +117,10 @@ namespace RestaurantApp.API.Modules.Auth.Services
             var branchExists = await _context.Branches.AnyAsync(b => b.Id == dto.BranchId && b.RestaurantId == dto.RestaurantId);
             if (!branchExists) throw new Exception("Chi nhánh không hợp lệ");
 
+            // Validate role exist
+            var roleExists = await _context.RestaurantRoles.FindAsync(dto.RoleId);
+            if (roleExists == null) throw new Exception("Vai trò không hợp lệ");
+
             var user = new User
             {
                 Id = Guid.NewGuid(),
@@ -123,10 +128,11 @@ namespace RestaurantApp.API.Modules.Auth.Services
                 Email = dto.Email ?? "",
                 FullName = dto.FullName,
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password),
-                Role = dto.Role,
+                RoleId = dto.RoleId,
                 RestaurantId = dto.RestaurantId,
                 BranchId = dto.BranchId,
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = DateTime.UtcNow,
+                RoleName = roleExists.Name
             };
 
             _context.Set<User>().Add(user);
@@ -147,14 +153,14 @@ namespace RestaurantApp.API.Modules.Auth.Services
         public async Task<List<UserDetailDto>> GetUsersByRestaurantAsync(Guid restaurantId, Guid? branchId = null)
         {
             var query = _context.Set<User>().Where(u => u.RestaurantId == restaurantId);
-            
+
             if (branchId.HasValue)
             {
                 query = query.Where(u => u.BranchId == branchId.Value);
             }
 
             var users = await query
-                .OrderBy(u => u.Role).ThenBy(u => u.FullName)
+                .OrderBy(u => u.RoleId).ThenBy(u => u.FullName)
                 .ToListAsync();
 
             return users.Select(MapToDetail).ToList();
@@ -166,13 +172,28 @@ namespace RestaurantApp.API.Modules.Auth.Services
             var user = await _context.Set<User>().FindAsync(userId);
             if (user == null) return null;
 
-            if (user.Role == "Owner") 
-                 throw new Exception("Không thể cập nhật tài khoản Owner qua chức năng này");
+            if (user.IsOwner)
+                throw new Exception("Không thể cập nhật tài khoản Owner qua chức năng này");
 
             if (!string.IsNullOrEmpty(dto.Email)) user.Email = dto.Email;
             if (!string.IsNullOrEmpty(dto.FullName)) user.FullName = dto.FullName;
-            if (!string.IsNullOrEmpty(dto.Role)) user.Role = dto.Role;
-            if (dto.BranchId.HasValue) user.BranchId = dto.BranchId.Value;
+            if (dto.RoleId.HasValue)
+            {
+                // Validate role exist
+                var roleExists = await _context.RestaurantRoles.FindAsync(dto.RoleId);
+                if (roleExists == null) throw new Exception("Vai trò không hợp lệ");
+
+                user.RoleId = dto.RoleId!.Value;
+                user.RoleName = roleExists.Name;
+            }
+            if (dto.BranchId.HasValue)
+            {
+                // Validate restaurant & branch exist
+                var branchExists = await _context.Branches.AnyAsync(b => b.Id == dto.BranchId);
+                if (!branchExists) throw new Exception("Chi nhánh không hợp lệ");
+
+                user.BranchId = dto.BranchId.Value;
+            }
 
             if (!string.IsNullOrEmpty(dto.Password))
             {
@@ -189,7 +210,7 @@ namespace RestaurantApp.API.Modules.Auth.Services
             var user = await _context.Set<User>().FindAsync(userId)
                 ?? throw new Exception("Không tìm thấy tài khoản");
 
-            if (user.Role == "Owner")
+            if (user.IsOwner)
                 throw new Exception("Không thể xoá tài khoản Owner");
 
             _context.Set<User>().Remove(user);
@@ -202,7 +223,7 @@ namespace RestaurantApp.API.Modules.Auth.Services
             Username = u.Username,
             Email = u.Email,
             FullName = u.FullName,
-            Role = u.Role,
+            RoleId = u.RoleId,
             RestaurantId = u.RestaurantId,
             BranchId = u.BranchId,
             CreatedAt = u.CreatedAt

@@ -16,6 +16,7 @@ using RestaurantApp.API.Modules.Inventory.Models;
 using RestaurantApp.API.Modules.Promotion.Models;
 using RestaurantApp.API.Modules.Notification.Models;
 using RestaurantApp.API.Modules.Audit.Models;
+using RestaurantApp.API.Modules.Role.Models;
 
 namespace RestaurantApp.API.Data
 {
@@ -244,6 +245,9 @@ namespace RestaurantApp.API.Data
         // ===== NOTIFICATIONS & AUDIT =====
         public DbSet<Notification> Notifications => Set<Notification>();
         public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
+        
+        // ===== ROLES =====
+        public DbSet<RestaurantRole> RestaurantRoles => Set<RestaurantRole>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -296,7 +300,7 @@ namespace RestaurantApp.API.Data
                 e.HasIndex(x => x.Username).IsUnique().HasDatabaseName("idx_users_username");
                 e.Property(x => x.Username).HasComment("Tên đăng nhập");
                 e.Property(x => x.Email).HasComment("Email đăng nhập");
-                e.Property(x => x.Role).HasComment("Vai trò: Admin/Manager/Staff");
+                e.Property(x => x.RoleId).HasComment("Vai trò: Admin/Manager/Staff");
             });
 
             // ===== RESTAURANTS =====
@@ -503,7 +507,7 @@ namespace RestaurantApp.API.Data
             {
                 e.ToTable("employees");
                 e.HasIndex(x => x.BranchId).HasDatabaseName("idx_employees_branch_id");
-                e.Property(x => x.Role).HasComment("owner/manager/cashier/waiter/chef/bartender");
+                e.Property(x => x.RoleId).HasComment("Vai trò của nhân viên");
                 e.Property(x => x.HourlyRate).HasColumnType("numeric(10,2)").HasComment("Lương theo giờ");
                 e.HasOne(em => em.Branch).WithMany().HasForeignKey(em => em.BranchId).OnDelete(DeleteBehavior.Restrict);
             });
@@ -596,6 +600,14 @@ namespace RestaurantApp.API.Data
                 e.HasIndex(x => x.CreatedAt).HasDatabaseName("idx_audit_logs_created_at");
                 e.Property(x => x.OldData).HasColumnType("jsonb").HasComment("Snapshot dữ liệu trước khi thay đổi");
                 e.Property(x => x.NewData).HasColumnType("jsonb").HasComment("Snapshot dữ liệu sau khi thay đổi");
+            });
+
+            // ===== RESTAURANT ROLES =====
+            modelBuilder.Entity<RestaurantRole>(e =>
+            {
+                e.ToTable("restaurant_roles");
+                e.HasIndex(x => x.RestaurantId).HasDatabaseName("idx_restaurant_roles_restaurant_id");
+                e.Property(x => x.Permissions).HasColumnType("jsonb").HasComment("Danh sách quyền dạng mảng JSON");
             });
         }
 
