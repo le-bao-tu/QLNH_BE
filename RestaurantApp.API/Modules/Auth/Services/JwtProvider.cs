@@ -27,7 +27,9 @@ namespace RestaurantApp.API.Modules.Auth.Services
                 new Claim("userId", user.Id.ToString()),
                 new Claim("username", user.Username),
                 new Claim("email", user.Email),
-                new Claim("role", user.Role),
+                new Claim("roleId", user.RoleId.ToString()),
+                new Claim("roleName", user.RoleName ?? ""),
+                new Claim("isOwner", user.IsOwner.ToString().ToLower()),
                 new Claim("fullName", user.FullName),
                 new Claim("restaurantId", user.RestaurantId?.ToString() ?? ""),
                 new Claim("branchId", user.BranchId?.ToString() ?? "")

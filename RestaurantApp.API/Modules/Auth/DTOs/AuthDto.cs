@@ -17,7 +17,7 @@ namespace RestaurantApp.API.Modules.Auth.DTOs
         public string Password { get; set; } = string.Empty;
         public string FullName { get; set; } = string.Empty;
         /// <summary>owner | manager | cashier | waiter | chef | bartender</summary>
-        public string Role { get; set; } = "waiter";
+        public Guid RoleId { get; set; }
         public Guid RestaurantId { get; set; }
         public Guid BranchId { get; set; }
     }
@@ -27,7 +27,7 @@ namespace RestaurantApp.API.Modules.Auth.DTOs
         public string? Email { get; set; }
         public string? Password { get; set; }
         public string? FullName { get; set; }
-        public string? Role { get; set; }
+        public Guid? RoleId { get; set; }
         public Guid? BranchId { get; set; }
     }
 
@@ -43,7 +43,7 @@ namespace RestaurantApp.API.Modules.Auth.DTOs
         public string Username { get; set; } = string.Empty;
         public string Email { get; set; } = string.Empty;
         public string FullName { get; set; } = string.Empty;
-        public string Role { get; set; } = string.Empty;
+        public string RoleName { get; set; } = string.Empty;
     }
 
     public class UserDetailDto
@@ -52,7 +52,8 @@ namespace RestaurantApp.API.Modules.Auth.DTOs
         public string Username { get; set; } = string.Empty;
         public string Email { get; set; } = string.Empty;
         public string FullName { get; set; } = string.Empty;
-        public string Role { get; set; } = string.Empty;
+        public Guid? RoleId { get; set; }
+        public string? RoleName { get; set; }
         public Guid? RestaurantId { get; set; }
         public Guid? BranchId { get; set; }
         public DateTime CreatedAt { get; set; }

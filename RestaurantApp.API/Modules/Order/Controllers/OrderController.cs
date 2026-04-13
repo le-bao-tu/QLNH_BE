@@ -24,6 +24,20 @@ namespace RestaurantApp.API.Modules.Order.Controllers
             return Guid.TryParse(idClaim, out var id) ? id : Guid.Empty;
         }
 
+        [HttpGet("branch/{branchId}")]
+        public async Task<IActionResult> GetOrdersByBranch(Guid branchId)
+        {
+            var orders = await _orderService.GetAllOrders(branchId);
+            return Ok(orders);
+        }
+
+        [HttpGet("restaurant/{restaurantId}")]
+        public async Task<IActionResult> GetOrdersByRestaurent(Guid restaurantId)
+        {
+            var orders = await _orderService.GetOrdersByRestaurant(restaurantId);
+            return Ok(orders);
+        }
+
         [HttpGet("active/branch/{branchId}")]
         public async Task<IActionResult> GetActive(Guid branchId)
         {

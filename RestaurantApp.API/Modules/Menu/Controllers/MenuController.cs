@@ -60,6 +60,14 @@ namespace RestaurantApp.API.Modules.Menu.Controllers
             return Ok(items);
         }
 
+        [HttpGet("items/branch/{branchId}")]
+        [AllowAnonymous]
+        public async Task<IActionResult> GetItemsByBranch(Guid branchId)
+        {
+            var items = await _menuService.GetAllItemsByBranchAsync(branchId);
+            return Ok(items);
+        }
+
         [HttpGet("items/category/{categoryId}")]
         [AllowAnonymous]
         public async Task<IActionResult> GetItemsByCategory(Guid categoryId)

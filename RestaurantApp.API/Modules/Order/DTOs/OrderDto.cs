@@ -4,6 +4,7 @@ namespace RestaurantApp.API.Modules.Order.DTOs
     {
         public Guid TableId { get; set; }
         public Guid? CustomerId { get; set; }
+        public Guid RestaurantId { get; set; }
         public int GuestCount { get; set; } = 1;
         public string? Note { get; set; }
         public string? VoucherCode { get; set; }
