@@ -27,5 +27,6 @@ namespace RestaurantApp.API.Modules.Table.DTOs
         public DateTime CreatedAt { get; set; }
         // Thông tin đơn hàng hiện tại (nếu có)
         public Guid? CurrentOrderId { get; set; }
+        public string? CurrentOrderStatus { get; set; }
     }
 }
