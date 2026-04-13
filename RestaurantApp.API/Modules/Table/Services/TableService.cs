@@ -32,8 +32,9 @@ namespace RestaurantApp.API.Modules.Table.Services
                 .ToListAsync();
 
             var activeOrders = await _context.Orders
+                .Include(o => o.OrderItems)
                 .Where(o => o.Status != Order.Models.OrderStatus.Paid && o.Status != Order.Models.OrderStatus.Cancelled)
-                .Select(o => new { o.TableId, o.Id })
+                .Select(o => new { o.TableId, o.Id, o.Status, HasAwaitingItems = o.OrderItems.Any(oi => oi.Status == Order.Models.OrderItemStatus.AwaitingConfirmation) })
                 .ToListAsync();
 
             return tables.Select(t =>
@@ -48,7 +49,8 @@ namespace RestaurantApp.API.Modules.Table.Services
                     Status = t.Status,
                     Note = t.Note,
                     CreatedAt = t.CreatedAt,
-                    CurrentOrderId = currentOrder?.Id
+                    CurrentOrderId = currentOrder?.Id,
+                    CurrentOrderStatus = currentOrder != null ? (currentOrder.HasAwaitingItems ? Order.Models.OrderItemStatus.AwaitingConfirmation : currentOrder.Status) : null
                 };
             }).ToList();
         }
@@ -66,7 +68,15 @@ namespace RestaurantApp.API.Modules.Table.Services
                 Capacity = t.Capacity,
                 Status = t.Status,
                 Note = t.Note,
-                CreatedAt = t.CreatedAt
+                CreatedAt = t.CreatedAt,
+                CurrentOrderId = _context.Orders.Where(o => o.TableId == t.Id && o.Status != Order.Models.OrderStatus.Paid && o.Status != Order.Models.OrderStatus.Cancelled).Select(o => (Guid?)o.Id).FirstOrDefault(),
+                CurrentOrderStatus = _context.Orders
+                    .Include(o => o.OrderItems)
+                    .Where(o => o.TableId == t.Id && o.Status != Order.Models.OrderStatus.Paid && o.Status != Order.Models.OrderStatus.Cancelled)
+                    .Select(o => o.OrderItems.Any(oi => oi.Status == Order.Models.OrderItemStatus.AwaitingConfirmation) 
+                        ? Order.Models.OrderItemStatus.AwaitingConfirmation 
+                        : o.Status)
+                    .FirstOrDefault()
             };
         }
 

@@ -172,6 +172,7 @@ namespace RestaurantApp.API.Modules.Order.Models
 
     public static class OrderStatus
     {
+        public const string AwaitingConfirmation = "awaiting_confirmation";
         public const string Pending = "pending";
         public const string Preparing = "preparing";
         public const string Ready = "ready";
@@ -182,6 +183,7 @@ namespace RestaurantApp.API.Modules.Order.Models
 
     public static class OrderItemStatus
     {
+        public const string AwaitingConfirmation = "awaiting_confirmation";
         public const string Pending = "pending";
         public const string Cooking = "cooking";
         public const string Ready = "ready";
