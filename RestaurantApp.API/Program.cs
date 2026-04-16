@@ -70,7 +70,6 @@ try {
     });
 } catch { /* RabbitMQ optional in dev */ }
 
-// 5. === MODULE SERVICES ===
 // Auth
 builder.Services.AddSingleton<RestaurantApp.API.Modules.Auth.Services.JwtProvider>();
 builder.Services.AddScoped<RestaurantApp.API.Modules.Auth.Services.IAuthService,
