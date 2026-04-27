@@ -9,6 +9,9 @@ namespace RestaurantApp.API.Modules.Order.Models
         public Guid BranchId { get; set; }
         public Branch.Models.Branch? Branch { get; set; }
 
+        /// <summary>Mã đơn hàng (ĐH - timestamp - số bàn)</summary>
+        public string OrderCode { get; set; } = string.Empty;
+
         /// <summary>Bàn phục vụ</summary>
         public Guid TableId { get; set; }
         public Table.Models.Table? Table { get; set; }

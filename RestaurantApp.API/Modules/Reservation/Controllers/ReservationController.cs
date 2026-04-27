@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using RestaurantApp.API.Modules.Reservation.DTOs;
 using RestaurantApp.API.Modules.Reservation.Services;
+using RestaurantApp.API.Common;
 using System.Security.Claims;
 
 namespace RestaurantApp.API.Modules.Reservation.Controllers
@@ -15,8 +16,12 @@ namespace RestaurantApp.API.Modules.Reservation.Controllers
         public ReservationController(IReservationService service) => _service = service;
 
         [HttpGet("branch/{branchId}")]
-        public async Task<IActionResult> GetByBranch(Guid branchId, [FromQuery] DateOnly? date)
-            => Ok(await _service.GetByBranchAsync(branchId, date));
+        public async Task<IActionResult> GetByBranch(Guid branchId, [FromQuery] DateOnly? date, [FromQuery] PaginationParams @params)
+        {
+            if (@params.PageIndex > 0)
+                return Ok(await _service.GetByBranchPagedAsync(branchId, date, @params));
+            return Ok(await _service.GetByBranchAsync(branchId, date));
+        }
 
         [HttpGet("{id}")]
         public async Task<IActionResult> GetById(Guid id)

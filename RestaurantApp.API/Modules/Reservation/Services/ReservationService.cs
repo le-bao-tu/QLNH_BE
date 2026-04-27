@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using RestaurantApp.API.Common;
 using RestaurantApp.API.Data;
 using RestaurantApp.API.Modules.Reservation.DTOs;
 using RestaurantApp.API.Modules.Reservation.Models;
@@ -9,6 +10,7 @@ namespace RestaurantApp.API.Modules.Reservation.Services
     public interface IReservationService
     {
         Task<List<ReservationDto>> GetByBranchAsync(Guid branchId, DateOnly? date = null);
+        Task<PagedResult<ReservationDto>> GetByBranchPagedAsync(Guid branchId, DateOnly? date, PaginationParams @params);
         Task<ReservationDto?> GetByIdAsync(Guid id);
         Task<ReservationDto> CreateAsync(CreateReservationDto dto);
         Task<ReservationDto?> UpdateStatusAsync(Guid id, UpdateReservationStatusDto dto, Guid userId);
@@ -26,7 +28,7 @@ namespace RestaurantApp.API.Modules.Reservation.Services
             var query = _context.Reservations
                 .Include(r => r.Table)
                 .Include(r => r.Customer)
-                .Where(r => r.BranchId == branchId);
+                .Where(r => r.BranchId == branchId && !r.IsDeleted);
 
             if (date.HasValue)
             {
@@ -39,6 +41,34 @@ namespace RestaurantApp.API.Modules.Reservation.Services
                 .OrderBy(r => r.ReservedAt)
                 .Select(r => MapToDto(r))
                 .ToListAsync();
+        }
+
+        public async Task<PagedResult<ReservationDto>> GetByBranchPagedAsync(Guid branchId, DateOnly? date, PaginationParams @params)
+        {
+            var query = _context.Reservations
+                .Include(r => r.Table)
+                .Include(r => r.Customer)
+                .Where(r => r.BranchId == branchId && !r.IsDeleted);
+
+            if (date.HasValue)
+            {
+                var start = date.Value.ToDateTime(TimeOnly.MinValue);
+                var end = date.Value.ToDateTime(TimeOnly.MaxValue);
+                query = query.Where(r => r.ReservedAt >= start && r.ReservedAt <= end);
+            }
+
+            if (!string.IsNullOrWhiteSpace(@params.Search))
+            {
+                query = query.Where(r => 
+                    r.GuestName.Contains(@params.Search) || 
+                    r.GuestPhone.Contains(@params.Search) || 
+                    (r.Customer != null && r.Customer.FullName.Contains(@params.Search)));
+            }
+
+            return await query
+                .OrderBy(r => r.ReservedAt)
+                .Select(r => MapToDto(r))
+                .ToPagedResultAsync(@params.PageIndex, @params.PageSize);
         }
 
         public async Task<ReservationDto?> GetByIdAsync(Guid id)

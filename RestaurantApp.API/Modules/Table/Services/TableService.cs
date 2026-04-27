@@ -8,6 +8,7 @@ namespace RestaurantApp.API.Modules.Table.Services
     public interface ITableService
     {
         Task<List<TableDto>> GetByBranchAsync(Guid branchId);
+        Task<List<TableDto>> GetByRestaurantAsync(Guid restaurantId);
         Task<TableDto?> GetByIdAsync(Guid id);
         Task<TableDto> CreateAsync(CreateTableDto dto);
         Task<TableDto?> UpdateAsync(Guid id, UpdateTableDto dto);
@@ -34,7 +35,7 @@ namespace RestaurantApp.API.Modules.Table.Services
             var activeOrders = await _context.Orders
                 .Include(o => o.OrderItems)
                 .Where(o => o.Status != Order.Models.OrderStatus.Paid && o.Status != Order.Models.OrderStatus.Cancelled)
-                .Select(o => new { o.TableId, o.Id, o.Status, HasAwaitingItems = o.OrderItems.Any(oi => oi.Status == Order.Models.OrderItemStatus.AwaitingConfirmation) })
+                .Select(o => new { o.TableId, o.Id, o.OrderCode, o.Status, HasAwaitingItems = o.OrderItems.Any(oi => oi.Status == Order.Models.OrderItemStatus.AwaitingConfirmation) })
                 .ToListAsync();
 
             return tables.Select(t =>
@@ -50,7 +51,40 @@ namespace RestaurantApp.API.Modules.Table.Services
                     Note = t.Note,
                     CreatedAt = t.CreatedAt,
                     CurrentOrderId = currentOrder?.Id,
+                    CurrentOrderCode = currentOrder?.OrderCode,
                     CurrentOrderStatus = currentOrder != null ? (currentOrder.HasAwaitingItems ? Order.Models.OrderItemStatus.AwaitingConfirmation : currentOrder.Status) : null
+                };
+            }).ToList();
+        }
+
+        public async Task<List<TableDto>> GetByRestaurantAsync(Guid restaurantId)
+        {
+            var tables = await _context.Tables
+                .Where(t => t.RestaurantId == restaurantId)
+                .OrderBy(t => t.TableNumber)
+                .ToListAsync();
+
+            var activeOrders = await _context.Orders
+                .Include(o => o.OrderItems)
+                .Where(o => o.RestaurantId == restaurantId 
+                    && o.Status != Order.Models.OrderStatus.Paid 
+                    && o.Status != Order.Models.OrderStatus.Cancelled)
+                .Select(o => new { o.TableId, o.Id, o.OrderCode, o.Status, HasAwaitingItems = o.OrderItems.Any(oi => oi.Status == Order.Models.OrderItemStatus.AwaitingConfirmation) })
+                .ToListAsync();
+
+            return tables.Select(t =>
+            {
+                var order = activeOrders.FirstOrDefault(o => o.TableId == t.Id);
+                return new TableDto
+                {
+                    Id = t.Id,
+                    BranchId = t.BranchId,
+                    TableNumber = t.TableNumber,
+                    Status = t.Status.ToString().ToLower(),
+                    Capacity = t.Capacity,
+                    CurrentOrderId = order?.Id,
+                    CurrentOrderCode = order?.OrderCode,
+                    IsAwaitingItems = order?.HasAwaitingItems ?? false
                 };
             }).ToList();
         }

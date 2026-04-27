@@ -8,6 +8,9 @@ namespace RestaurantApp.API.Modules.Menu.Models
         /// <summary>Nhà hàng sở hữu danh mục</summary>
         public Guid RestaurantId { get; set; }
 
+        /// <summary>Danh sách chi nhánh áp dụng (JSON array of Guid strings). NULL = áp dụng cho tất cả chi nhánh</summary>
+        public string? BranchIds { get; set; }
+
         /// <summary>Tên danh mục</summary>
         public string Name { get; set; } = string.Empty;
 

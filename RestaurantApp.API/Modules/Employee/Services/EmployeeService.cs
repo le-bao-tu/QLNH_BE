@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using RestaurantApp.API.Data;
 using RestaurantApp.API.Modules.Employee.Models;
+using RestaurantApp.API.Common;
 
 namespace RestaurantApp.API.Modules.Employee.Services
 {
@@ -12,6 +13,7 @@ namespace RestaurantApp.API.Modules.Employee.Services
     public interface IEmployeeService
     {
         Task<List<EmployeeDto>> GetByBranchAsync(Guid branchId);
+        Task<PagedResult<EmployeeDto>> GetByBranchPagedAsync(Guid branchId, PaginationParams @params);
         Task<EmployeeDto?> GetByIdAsync(Guid id);
         Task<EmployeeDto> CreateAsync(CreateEmployeeDto dto);
         Task<EmployeeDto?> UpdateAsync(Guid id, CreateEmployeeDto dto);
@@ -28,8 +30,19 @@ namespace RestaurantApp.API.Modules.Employee.Services
         public EmployeeService(AppDbContext ctx) => _ctx = ctx;
 
         public async Task<List<EmployeeDto>> GetByBranchAsync(Guid branchId)
-            => await _ctx.Employees.Where(e => e.BranchId == branchId)
+            => await _ctx.Employees.Where(e => e.BranchId == branchId && !e.IsDeleted)
                 .OrderBy(e => e.FullName).Select(e => ToDto(e)).ToListAsync();
+
+        public async Task<PagedResult<EmployeeDto>> GetByBranchPagedAsync(Guid branchId, PaginationParams @params)
+        {
+            var query = _ctx.Employees.Where(e => e.BranchId == branchId && !e.IsDeleted);
+            if (!string.IsNullOrWhiteSpace(@params.Search))
+                query = query.Where(e => e.FullName.Contains(@params.Search) || (e.Phone != null && e.Phone.Contains(@params.Search)));
+            
+            return await query.OrderBy(e => e.FullName)
+                .Select(e => ToDto(e))
+                .ToPagedResultAsync(@params.PageIndex, @params.PageSize);
+        }
 
         public async Task<EmployeeDto?> GetByIdAsync(Guid id)
         {

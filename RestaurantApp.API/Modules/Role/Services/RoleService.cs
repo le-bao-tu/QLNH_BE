@@ -32,7 +32,7 @@ namespace RestaurantApp.API.Modules.Role.Services
             return roles.Select(r => new RoleDto
             {
                 Id = r.Id,
-                RestaurantId = r.RestaurantId,
+                RestaurantId = (Guid)r.RestaurantId,
                 Name = r.Name,
                 Description = r.Description,
                 Permissions = JsonSerializer.Deserialize<List<string>>(r.Permissions) ?? new List<string>()
@@ -55,7 +55,7 @@ namespace RestaurantApp.API.Modules.Role.Services
             return new RoleDto
             {
                 Id = role.Id,
-                RestaurantId = role.RestaurantId,
+                RestaurantId = (Guid)role.RestaurantId,
                 Name = role.Name,
                 Description = role.Description,
                 Permissions = dto.Permissions
@@ -77,7 +77,7 @@ namespace RestaurantApp.API.Modules.Role.Services
             return new RoleDto
             {
                 Id = role.Id,
-                RestaurantId = role.RestaurantId,
+                RestaurantId = (Guid)role.RestaurantId,
                 Name = role.Name,
                 Description = role.Description,
                 Permissions = dto.Permissions

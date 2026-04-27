@@ -1,20 +1,25 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using RestaurantApp.API.Modules.Promotion.Services;
+using RestaurantApp.API.Common;
 
 namespace RestaurantApp.API.Modules.Promotion.Controllers
 {
     [ApiController]
     [Route("api/promotions")]
-    [Authorize]
+    [AllowAnonymous]
     public class PromotionController : ControllerBase
     {
         private readonly IPromotionService _svc;
         public PromotionController(IPromotionService svc) => _svc = svc;
 
         [HttpGet("restaurant/{restaurantId}")]
-        public async Task<IActionResult> GetByRestaurant(Guid restaurantId, [FromQuery] bool? activeOnly)
-            => Ok(await _svc.GetByRestaurantAsync(restaurantId, activeOnly));
+        public async Task<IActionResult> GetByRestaurant(Guid restaurantId, [FromQuery] bool? activeOnly, [FromQuery] PaginationParams @params)
+        {
+            if (@params.PageIndex > 0)
+                return Ok(await _svc.GetByRestaurantPagedAsync(restaurantId, activeOnly, @params));
+            return Ok(await _svc.GetByRestaurantAsync(restaurantId, activeOnly));
+        }
 
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] CreatePromotionDto dto)

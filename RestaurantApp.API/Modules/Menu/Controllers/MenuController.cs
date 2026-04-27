@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using RestaurantApp.API.Modules.Menu.DTOs;
 using RestaurantApp.API.Modules.Menu.Services;
+using RestaurantApp.API.Common;
 
 namespace RestaurantApp.API.Modules.Menu.Controllers
 {
@@ -20,9 +21,17 @@ namespace RestaurantApp.API.Modules.Menu.Controllers
         // ===== CATEGORIES =====
         [HttpGet("categories/restaurant/{restaurantId}")]
         [AllowAnonymous]
-        public async Task<IActionResult> GetCategories(Guid restaurantId)
+        public async Task<IActionResult> GetCategories(Guid restaurantId, [FromQuery] Guid? branchId)
         {
-            var cats = await _menuService.GetCategoriesByRestaurantAsync(restaurantId);
+            var cats = await _menuService.GetCategoriesByRestaurantAsync(restaurantId, branchId);
+            return Ok(cats);
+        }
+
+        [HttpGet("categories/branch/{branchId}")]
+        [AllowAnonymous]
+        public async Task<IActionResult> GetCategoriesByBranch(Guid branchId)
+        {
+            var cats = await _menuService.GetCategoriesByBranchAsync(branchId);
             return Ok(cats);
         }
 
@@ -52,11 +61,16 @@ namespace RestaurantApp.API.Modules.Menu.Controllers
         }
 
         // ===== ITEMS =====
-        [HttpGet("items/restaurant/{restaurantId}")]
+        [HttpGet("items/restaurant/{restaurantId}/branch/{branchId}")]
         [AllowAnonymous]
-        public async Task<IActionResult> GetAllItems(Guid restaurantId)
+        public async Task<IActionResult> GetAllItems(Guid restaurantId, Guid? branchId, [FromQuery] Guid? categoryId, [FromQuery] PaginationParams @params)
         {
-            var items = await _menuService.GetAllItemsByRestaurantAsync(restaurantId);
+            if (@params.PageIndex > 0)
+            {
+                var result = await _menuService.GetAllItemsByRestaurantPagedAsync(restaurantId, branchId, categoryId, @params);
+                return Ok(result);
+            }
+            var items = await _menuService.GetAllItemsByRestaurantAsync(restaurantId, branchId);
             return Ok(items);
         }
 

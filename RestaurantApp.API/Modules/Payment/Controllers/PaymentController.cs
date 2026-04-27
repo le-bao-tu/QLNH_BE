@@ -1,12 +1,15 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using RestaurantApp.API.Data;
 using RestaurantApp.API.Modules.Payment.Models;
+using RestaurantApp.API.Common;
 
 namespace RestaurantApp.API.Modules.Payment.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize]
     public class PaymentController : ControllerBase
     {
         private readonly AppDbContext _ctx;
@@ -20,11 +23,19 @@ namespace RestaurantApp.API.Modules.Payment.Controllers
         }
 
         [HttpGet("recent/branch/{branchId}")]
-        public async Task<IActionResult> GetRecentInBranch(Guid branchId)
+        public async Task<IActionResult> GetRecentInBranch(Guid branchId, [FromQuery] PaginationParams @params)
         {
-            var p = await _ctx.Payments
+            var query = _ctx.Payments
                 .Include(x => x.Order)
-                .Where(x => x.Order!.BranchId == branchId)
+                .Where(x => x.Order!.BranchId == branchId);
+            
+            if (!string.IsNullOrEmpty(@params.Search))
+                query = query.Where(x => x.Order!.Id.ToString().Contains(@params.Search));
+
+            if (@params.PageIndex > 0)
+                return Ok(await query.OrderByDescending(x => x.CreatedAt).ToPagedResultAsync(@params.PageIndex, @params.PageSize));
+
+            var p = await query
                 .OrderByDescending(x => x.CreatedAt)
                 .Take(1000)
                 .ToListAsync();
@@ -32,11 +43,19 @@ namespace RestaurantApp.API.Modules.Payment.Controllers
         }
 
         [HttpGet("recent/restaurant/{restaurantId}")]
-        public async Task<IActionResult> GetRecentInRestaurant(Guid restaurantId)
+        public async Task<IActionResult> GetRecentInRestaurant(Guid restaurantId, [FromQuery] PaginationParams @params)
         {
-            var p = await _ctx.Payments
+            var query = _ctx.Payments
                 .Include(x => x.Order)
-                .Where(x => x.Order!.RestaurantId == restaurantId)
+                .Where(x => x.Order!.RestaurantId == restaurantId);
+
+            if (!string.IsNullOrEmpty(@params.Search))
+                query = query.Where(x => x.Order!.Id.ToString().Contains(@params.Search));
+
+            if (@params.PageIndex > 0)
+                return Ok(await query.OrderByDescending(x => x.CreatedAt).ToPagedResultAsync(@params.PageIndex, @params.PageSize));
+
+            var p = await query
                 .OrderByDescending(x => x.CreatedAt)
                 .Take(1000)
                 .ToListAsync();

@@ -7,6 +7,8 @@ using MassTransit;
 using FluentValidation;
 using System.Reflection;
 using Microsoft.OpenApi.Models;
+using RestaurantApp.API.Hubs;
+using AutoMapper;
 // Fix for PostgreSQL DateTime Kind issue
 AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
 
@@ -98,6 +100,8 @@ builder.Services.AddScoped<RestaurantApp.API.Modules.Menu.Services.IMenuService,
 // Order
 builder.Services.AddScoped<RestaurantApp.API.Modules.Order.Services.IOrderService,
     RestaurantApp.API.Modules.Order.Services.OrderService>();
+builder.Services.AddScoped<RestaurantApp.API.Modules.Order.Services.IDashboardService,
+    RestaurantApp.API.Modules.Order.Services.DashboardService>();
 
 // Payment
 builder.Services.AddScoped<RestaurantApp.API.Modules.Payment.Services.IPaymentService,
@@ -124,7 +128,9 @@ builder.Services.AddScoped<RestaurantApp.API.Modules.Role.Services.IRoleService,
     RestaurantApp.API.Modules.Role.Services.RoleService>();
 
 // 6. AutoMapper
-builder.Services.AddAutoMapper(Assembly.GetExecutingAssembly());
+builder.Services.AddAutoMapper(cfg => {
+    cfg.AddMaps(typeof(Program).Assembly);
+});
 
 // 7. FluentValidation
 builder.Services.AddValidatorsFromAssembly(Assembly.GetExecutingAssembly());
@@ -133,6 +139,11 @@ builder.Services.AddValidatorsFromAssembly(Assembly.GetExecutingAssembly());
 builder.Services.AddControllers()
     .AddJsonOptions(options => {
         options.JsonSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
+    });
+
+builder.Services.AddSignalR()
+    .AddJsonProtocol(options => {
+        options.PayloadSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
     });
 
 // 9. Swagger
@@ -165,10 +176,11 @@ builder.Services.AddSwaggerGen(options => {
 });
 
 
-// 10. CORS
 builder.Services.AddCors(options => {
     options.AddPolicy("AllowFrontend", policy => {
-        policy.WithOrigins("http://localhost:3000", "http://127.0.0.1:3000")
+        policy.WithOrigins(
+                builder.Configuration["AllowedOrigins"]?.Split(',') 
+                ?? new[] { "http://localhost:3000", "http://127.0.0.1:3000" })
               .AllowAnyHeader()
               .AllowAnyMethod()
               .AllowCredentials();
@@ -196,9 +208,21 @@ else
 }
 
 app.UseStaticFiles();
+
+// Security Headers
+app.Use(async (context, next) => {
+    context.Response.Headers.Append("X-Frame-Options", "DENY");
+    context.Response.Headers.Append("X-Content-Type-Options", "nosniff");
+    context.Response.Headers.Append("X-XSS-Protection", "1; mode=block");
+    context.Response.Headers.Append("Referrer-Policy", "strict-origin-when-cross-origin");
+    context.Response.Headers.Append("Content-Security-Policy", "default-src 'self'; script-src 'self'; object-src 'none';");
+    await next();
+});
+
 app.UseCors("AllowFrontend");
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
+app.MapHub<OrderHub>("/hubs/order");
 
 app.Run();
