@@ -6,6 +6,7 @@ namespace RestaurantApp.API.Modules.Menu.DTOs
         public string Name { get; set; } = string.Empty;
         public string? ImageUrl { get; set; }
         public int SortOrder { get; set; }
+        public string? BranchIds { get; set; }
     }
 
     public class UpdateMenuCategoryDto
@@ -14,12 +15,14 @@ namespace RestaurantApp.API.Modules.Menu.DTOs
         public string? ImageUrl { get; set; }
         public int? SortOrder { get; set; }
         public bool? IsActive { get; set; }
+        public string? BranchIds { get; set; }
     }
 
     public class MenuCategoryDto
     {
         public Guid Id { get; set; }
         public Guid RestaurantId { get; set; }
+        public string? BranchIds { get; set; }
         public string Name { get; set; } = string.Empty;
         public string? ImageUrl { get; set; }
         public int SortOrder { get; set; }

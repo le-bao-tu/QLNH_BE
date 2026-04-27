@@ -53,6 +53,7 @@ namespace RestaurantApp.API.Modules.Order.DTOs
     public class OrderDto
     {
         public Guid Id { get; set; }
+        public string OrderCode { get; set; } = string.Empty;
         public Guid TableId { get; set; }
         public int TableNumber { get; set; }
         public Guid? StaffId { get; set; }
@@ -72,11 +73,39 @@ namespace RestaurantApp.API.Modules.Order.DTOs
     public class OrderSummaryDto
     {
         public Guid Id { get; set; }
+        public string OrderCode { get; set; } = string.Empty;
         public int TableNumber { get; set; }
         public string Status { get; set; } = string.Empty;
         public decimal TotalAmount { get; set; }
         public decimal Subtotal { get; set; }
         public int ItemCount { get; set; }
+        public bool HasAwaitingItems { get; set; }
         public DateTime CreatedAt { get; set; }
+    }
+
+    public class DishSaleDto
+    {
+        public string MenuItemName { get; set; } = string.Empty;
+        public int TotalQuantity { get; set; }
+        public decimal TotalRevenue { get; set; }
+    }
+
+    public class SplitTableDto
+    {
+        public Guid SourceTableId { get; set; }
+        public Guid TargetTableId { get; set; }
+        public List<SplitItemDto> Items { get; set; } = new();
+    }
+
+    public class SplitItemDto
+    {
+        public Guid OrderItemId { get; set; }
+        public int Quantity { get; set; }
+    }
+
+    public class MergeTablesDto
+    {
+        public List<Guid> SourceTableIds { get; set; } = new();
+        public Guid MasterTableId { get; set; }
     }
 }

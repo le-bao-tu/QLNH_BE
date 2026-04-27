@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using RestaurantApp.API.Common;
 using RestaurantApp.API.Data;
 using RestaurantApp.API.Modules.Promotion.Models;
 
@@ -15,6 +16,7 @@ namespace RestaurantApp.API.Modules.Promotion.Services
     public interface IPromotionService
     {
         Task<List<PromotionDto>> GetByRestaurantAsync(Guid restaurantId, bool? activeOnly = null);
+        Task<PagedResult<PromotionDto>> GetByRestaurantPagedAsync(Guid restaurantId, bool? activeOnly, PaginationParams @params);
         Task<List<PromotionDto>> GetActivePromotionsAsync(Guid restaurantId);
         Task<ValidateVoucherResultDto?> ValidateVoucherAsync(string code, decimal orderAmount);
         Task<VoucherDto> CreateVoucherAsync(CreateVoucherDto dto);
@@ -25,7 +27,7 @@ namespace RestaurantApp.API.Modules.Promotion.Services
         Task<PromotionDto?> ToggleActiveAsync(Guid id);
         Task<bool> DeleteAsync(Guid id);
         Task<List<PromotionDto>> GetActiveItemPromotionsAsync(Guid restaurantId);
-
+        Task<List<PromotionDto>> GetActiveBillPromotionsAsync(Guid restaurantId);
     }
 
     public class PromotionService : IPromotionService
@@ -38,6 +40,19 @@ namespace RestaurantApp.API.Modules.Promotion.Services
             var query = _ctx.Promotions.Where(p => p.RestaurantId == restaurantId && !p.IsDeleted);
             if (activeOnly == true) query = query.Where(p => p.IsActive);
             return await query.OrderByDescending(p => p.CreatedAt).Select(p => ToDto(p)).ToListAsync();
+        }
+
+        public async Task<PagedResult<PromotionDto>> GetByRestaurantPagedAsync(Guid restaurantId, bool? activeOnly, PaginationParams @params)
+        {
+            var query = _ctx.Promotions.Where(p => p.RestaurantId == restaurantId && !p.IsDeleted);
+            if (activeOnly == true) query = query.Where(p => p.IsActive);
+            
+            if (!string.IsNullOrWhiteSpace(@params.Search))
+                query = query.Where(p => p.Name.Contains(@params.Search) || (p.Description != null && p.Description.Contains(@params.Search)));
+
+            return await query.OrderByDescending(p => p.CreatedAt)
+                .Select(p => ToDto(p))
+                .ToPagedResultAsync(@params.PageIndex, @params.PageSize);
         }
 
         public async Task<List<PromotionDto>> GetActivePromotionsAsync(Guid restaurantId)
@@ -57,6 +72,20 @@ namespace RestaurantApp.API.Modules.Promotion.Services
                     && p.IsActive 
                     && !p.IsDeleted
                     && p.ApplyTo == "item"
+                    && p.StartDate <= today 
+                    && p.EndDate >= today)
+                .Select(p => ToDto(p))
+                .ToListAsync();
+        }
+
+        public async Task<List<PromotionDto>> GetActiveBillPromotionsAsync(Guid restaurantId)
+        {
+            var today = DateOnly.FromDateTime(DateTime.Today);
+            return await _ctx.Promotions
+                .Where(p => p.RestaurantId == restaurantId 
+                    && p.IsActive 
+                    && !p.IsDeleted
+                    && p.ApplyTo == "bill"
                     && p.StartDate <= today 
                     && p.EndDate >= today)
                 .Select(p => ToDto(p))

@@ -363,6 +363,7 @@ namespace RestaurantApp.API.Data
             {
                 e.ToTable("menu_categories");
                 e.HasIndex(x => x.RestaurantId).HasDatabaseName("idx_menu_categories_restaurant_id");
+                e.Property(x => x.BranchIds).HasComment("JSON array of branch ids. NULL = áp dụng cho tất cả chi nhánh");
                 e.Property(x => x.SortOrder).HasComment("Thứ tự hiển thị danh mục trên menu");
                 e.Property(x => x.IsActive).HasComment("Danh mục đang được hiển thị hay ẩn");
             });

@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using RestaurantApp.API.Data;
 using RestaurantApp.API.Modules.Order.Models;
+using RestaurantApp.API.Common;
 
 namespace RestaurantApp.API.Modules.Kitchen.Controllers
 {
@@ -13,13 +14,21 @@ namespace RestaurantApp.API.Modules.Kitchen.Controllers
         public KitchenController(AppDbContext ctx) => _ctx = ctx;
 
         [HttpGet("branch/{branchId}")]
-        public async Task<IActionResult> GetByBranch(Guid branchId)
+        public async Task<IActionResult> GetByBranch(Guid branchId, [FromQuery] PaginationParams @params)
         {
-            var tickets = await _ctx.KitchenOrders
+            var query = _ctx.KitchenOrders
                 .Include(ko => ko.OrderItem)
                     .ThenInclude(oi => oi.MenuItem)
-                .Where(ko => ko.BranchId == branchId && ko.Status != KitchenOrderStatus.Served)
-                .OrderBy(ko => ko.ReceivedAt)
+                .Where(ko => ko.BranchId == branchId && ko.Status != KitchenOrderStatus.Served);
+
+            if (!string.IsNullOrEmpty(@params.Search))
+            {
+                query = query.Where(ko => 
+                    ko.TableNumber.ToString().Contains(@params.Search) || 
+                    ko.OrderItem.MenuItem.Name.Contains(@params.Search));
+            }
+
+            var selectQuery = query.OrderBy(ko => ko.ReceivedAt)
                 .Select(ko => new {
                     id = ko.Id,
                     orderItemId = ko.OrderItemId,
@@ -33,10 +42,14 @@ namespace RestaurantApp.API.Modules.Kitchen.Controllers
                     receivedAt = ko.ReceivedAt,
                     startedAt = ko.StartedAt,
                     completedAt = ko.CompletedAt
-                })
-                .ToListAsync();
+                });
 
-            return Ok(tickets);
+            if (@params.PageIndex > 0)
+            {
+                return Ok(await selectQuery.ToPagedResultAsync(@params.PageIndex, @params.PageSize));
+            }
+
+            return Ok(await selectQuery.ToListAsync());
         }
 
         [HttpPatch("{id}/status")]

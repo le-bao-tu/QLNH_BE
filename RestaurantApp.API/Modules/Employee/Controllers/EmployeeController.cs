@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using RestaurantApp.API.Modules.Employee.Services;
+using RestaurantApp.API.Common;
 
 namespace RestaurantApp.API.Modules.Employee.Controllers
 {
@@ -13,8 +14,12 @@ namespace RestaurantApp.API.Modules.Employee.Controllers
         public EmployeeController(IEmployeeService svc) => _svc = svc;
 
         [HttpGet("branch/{branchId}")]
-        public async Task<IActionResult> GetByBranch(Guid branchId)
-            => Ok(await _svc.GetByBranchAsync(branchId));
+        public async Task<IActionResult> GetByBranch(Guid branchId, [FromQuery] PaginationParams @params)
+        {
+            if (@params.PageIndex > 0)
+                return Ok(await _svc.GetByBranchPagedAsync(branchId, @params));
+            return Ok(await _svc.GetByBranchAsync(branchId));
+        }
 
         [HttpGet("{id}")]
         public async Task<IActionResult> GetById(Guid id)

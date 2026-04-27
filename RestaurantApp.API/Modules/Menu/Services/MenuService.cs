@@ -1,23 +1,26 @@
-﻿using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.EntityFrameworkCore;
 using RestaurantApp.API.Data;
 using RestaurantApp.API.Modules.Menu.DTOs;
 using RestaurantApp.API.Modules.Menu.Models;
 using RestaurantApp.API.Modules.Promotion.Models;
 using RestaurantApp.API.Modules.Restaurant.Models;
+using RestaurantApp.API.Common;
 using System.Text.Json;
 
 namespace RestaurantApp.API.Modules.Menu.Services
 {
     public interface IMenuService
     {
-        Task<List<MenuCategoryDto>> GetCategoriesByRestaurantAsync(Guid restaurantId);
+        Task<List<MenuCategoryDto>> GetCategoriesByRestaurantAsync(Guid restaurantId, Guid? branchId);
+        Task<List<MenuCategoryDto>> GetCategoriesByBranchAsync(Guid branchId);
         Task<MenuCategoryDto> CreateCategoryAsync(CreateMenuCategoryDto dto);
         Task<MenuCategoryDto?> UpdateCategoryAsync(Guid id, UpdateMenuCategoryDto dto);
         Task<bool> DeleteCategoryAsync(Guid id);
 
         Task<List<MenuItemDto>> GetItemsByCategoryAsync(Guid categoryId);
-        Task<List<MenuItemDto>> GetAllItemsByRestaurantAsync(Guid restaurantId);
+        Task<List<MenuItemDto>> GetAllItemsByRestaurantAsync(Guid restaurantId, Guid? branchId);
+        Task<PagedResult<MenuItemDto>> GetAllItemsByRestaurantPagedAsync(Guid restaurantId, Guid? branchId, Guid? categoryId, PaginationParams @params);
         Task<List<MenuItemDto>> GetAllItemsByBranchAsync(Guid branchId);
         Task<MenuItemDto?> GetItemByIdAsync(Guid id);
         Task<MenuItemDto> CreateItemAsync(CreateMenuItemDto dto);
@@ -31,21 +34,30 @@ namespace RestaurantApp.API.Modules.Menu.Services
 
         public MenuService(AppDbContext context) => _context = context;
 
-        public async Task<List<MenuCategoryDto>> GetCategoriesByRestaurantAsync(Guid restaurantId)
+        public async Task<List<MenuCategoryDto>> GetCategoriesByRestaurantAsync(Guid restaurantId, Guid? branchId)
         {
-            return await _context.MenuCategories
-                .Where(c => c.RestaurantId == restaurantId)
+            var query = _context.MenuCategories
+                .Where(c => c.RestaurantId == restaurantId && !c.IsDeleted);
+
+            if (branchId.HasValue)
+            {
+                var bId = branchId.Value.ToString();
+                query = query.Where(c => string.IsNullOrEmpty(c.BranchIds) || c.BranchIds.Contains(bId));
+            }
+
+            return await query
                 .OrderBy(c => c.SortOrder)
                 .Select(c => new MenuCategoryDto
                 {
                     Id = c.Id,
                     RestaurantId = c.RestaurantId,
+                    BranchIds = c.BranchIds,
                     Name = c.Name,
                     ImageUrl = c.ImageUrl,
                     SortOrder = c.SortOrder,
                     IsActive = c.IsActive,
                     Items = c.MenuItems
-                        .Where(i => !i.IsDeleted)
+                        .Where(i => !i.IsDeleted && (branchId == null || string.IsNullOrEmpty(i.BranchIds) || i.BranchIds.Contains(branchId.ToString())))
                         .OrderBy(i => i.SortOrder)
                         .Select(i => new MenuItemDto
                         {
@@ -58,9 +70,17 @@ namespace RestaurantApp.API.Modules.Menu.Services
                             ImageUrl = i.ImageUrl,
                             Unit = i.Unit,
                             IsAvailable = i.IsAvailable,
-                            SortOrder = i.SortOrder
+                            SortOrder = i.SortOrder,
+                            BranchIds = i.BranchIds
                         }).ToList()
                 }).ToListAsync();
+        }
+
+        public async Task<List<MenuCategoryDto>> GetCategoriesByBranchAsync(Guid branchId)
+        {
+            var branch = await _context.Branches.FindAsync(branchId);
+            if (branch == null) return new List<MenuCategoryDto>();
+            return await GetCategoriesByRestaurantAsync(branch.RestaurantId, branchId);
         }
 
         public async Task<MenuCategoryDto> CreateCategoryAsync(CreateMenuCategoryDto dto)
@@ -68,6 +88,7 @@ namespace RestaurantApp.API.Modules.Menu.Services
             var cat = new MenuCategory
             {
                 RestaurantId = dto.RestaurantId,
+                BranchIds = dto.BranchIds,
                 Name = dto.Name,
                 ImageUrl = dto.ImageUrl,
                 SortOrder = dto.SortOrder,
@@ -75,7 +96,7 @@ namespace RestaurantApp.API.Modules.Menu.Services
             };
             _context.MenuCategories.Add(cat);
             await _context.SaveChangesAsync();
-            return new MenuCategoryDto { Id = cat.Id, RestaurantId = cat.RestaurantId, Name = cat.Name, ImageUrl = cat.ImageUrl, SortOrder = cat.SortOrder, IsActive = cat.IsActive };
+            return new MenuCategoryDto { Id = cat.Id, RestaurantId = cat.RestaurantId, BranchIds = cat.BranchIds, Name = cat.Name, ImageUrl = cat.ImageUrl, SortOrder = cat.SortOrder, IsActive = cat.IsActive };
         }
 
         public async Task<MenuCategoryDto?> UpdateCategoryAsync(Guid id, UpdateMenuCategoryDto dto)
@@ -86,9 +107,10 @@ namespace RestaurantApp.API.Modules.Menu.Services
             if (dto.ImageUrl != null) cat.ImageUrl = dto.ImageUrl;
             if (dto.SortOrder.HasValue) cat.SortOrder = dto.SortOrder.Value;
             if (dto.IsActive.HasValue) cat.IsActive = dto.IsActive.Value;
+            if (dto.BranchIds != null) cat.BranchIds = dto.BranchIds;
             cat.UpdatedAt = DateTime.UtcNow;
             await _context.SaveChangesAsync();
-            return new MenuCategoryDto { Id = cat.Id, RestaurantId = cat.RestaurantId, Name = cat.Name, ImageUrl = cat.ImageUrl, SortOrder = cat.SortOrder, IsActive = cat.IsActive };
+            return new MenuCategoryDto { Id = cat.Id, RestaurantId = cat.RestaurantId, BranchIds = cat.BranchIds, Name = cat.Name, ImageUrl = cat.ImageUrl, SortOrder = cat.SortOrder, IsActive = cat.IsActive };
         }
 
         public async Task<bool> DeleteCategoryAsync(Guid id)
@@ -112,18 +134,51 @@ namespace RestaurantApp.API.Modules.Menu.Services
                 .Select(i => ToItemDto(i, activePromotions)).ToListAsync();
         }
 
-        public async Task<List<MenuItemDto>> GetAllItemsByRestaurantAsync(Guid restaurantId)
+        public async Task<List<MenuItemDto>> GetAllItemsByRestaurantAsync(Guid restaurantId, Guid? branchId)
         {
             var activePromotions = await GetActiveItemPromotionsAsync(restaurantId, Guid.Empty);
 
             var menuItems = await _context.MenuItems
                 .Include(i => i.Category)
                 .Include(i => i.ComboItems).ThenInclude(c => c.SingleItem)
-                .Where(i => i.Category!.RestaurantId == restaurantId && !i.IsDeleted)
+                .Where(i => i.Category!.RestaurantId == restaurantId && !i.IsDeleted && (branchId == null || i.BranchIds.Contains(branchId.ToString())))
                 .OrderBy(i => i.Category!.SortOrder).ThenBy(i => i.SortOrder)
                 .ToListAsync();
 
             return menuItems.Select(i => ToItemDto(i, activePromotions)).ToList();
+        }
+
+        public async Task<PagedResult<MenuItemDto>> GetAllItemsByRestaurantPagedAsync(Guid restaurantId, Guid? branchId, Guid? categoryId, PaginationParams @params)
+        {
+            var activePromotions = await GetActiveItemPromotionsAsync(restaurantId, Guid.Empty);
+
+            var query = _context.MenuItems
+                .Include(i => i.Category)
+                .Include(i => i.ComboItems).ThenInclude(c => c.SingleItem)
+                .Where(i => i.Category!.RestaurantId == restaurantId && !i.IsDeleted && (branchId == null || i.BranchIds.Contains(branchId.ToString())))
+                .AsQueryable();
+
+            if (categoryId.HasValue)
+            {
+                query = query.Where(i => i.CategoryId == categoryId.Value);
+            }
+
+            if (!string.IsNullOrEmpty(@params.Search))
+            {
+                query = query.Where(i => i.Name.Contains(@params.Search) || i.Category!.Name.Contains(@params.Search));
+            }
+
+            query = query.OrderBy(i => i.Category!.SortOrder).ThenBy(i => i.SortOrder);
+
+            var pagedResult = await query.ToPagedResultAsync(@params.PageIndex, @params.PageSize);
+            
+            return new PagedResult<MenuItemDto>
+            {
+                TotalCount = pagedResult.TotalCount,
+                PageIndex = pagedResult.PageIndex,
+                PageSize = pagedResult.PageSize,
+                Items = pagedResult.Items.Select(i => ToItemDto(i, activePromotions)).ToList()
+            };
         }
 
         public async Task<List<MenuItemDto>> GetAllItemsByBranchAsync(Guid branchId)

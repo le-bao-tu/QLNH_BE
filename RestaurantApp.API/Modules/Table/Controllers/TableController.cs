@@ -7,7 +7,7 @@ namespace RestaurantApp.API.Modules.Table.Controllers
 {
     [ApiController]
     [Route("api/tables")]
-    [Authorize]
+    [AllowAnonymous]
     public class TableController : ControllerBase
     {
         private readonly ITableService _tableService;
@@ -21,6 +21,13 @@ namespace RestaurantApp.API.Modules.Table.Controllers
         public async Task<IActionResult> GetByBranch(Guid branchId)
         {
             var tables = await _tableService.GetByBranchAsync(branchId);
+            return Ok(tables);
+        }
+
+        [HttpGet("restaurant/{restaurantId}")]
+        public async Task<IActionResult> GetByRestaurant(Guid restaurantId)
+        {
+            var tables = await _tableService.GetByRestaurantAsync(restaurantId);
             return Ok(tables);
         }
 

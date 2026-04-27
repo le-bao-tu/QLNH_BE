@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using RestaurantApp.API.Data;
 using RestaurantApp.API.Modules.Audit.Models;
 using RestaurantApp.API.Modules.Audit.DTOs;
+using RestaurantApp.API.Common;
 using System.Security.Claims;
 
 namespace RestaurantApp.API.Modules.Audit.Controllers
@@ -21,7 +22,7 @@ namespace RestaurantApp.API.Modules.Audit.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetLogs([FromQuery] int page = 1, [FromQuery] int pageSize = 20, [FromQuery] string? module = null, [FromQuery] string? search = null, [FromQuery] Guid? branchId = null)
+        public async Task<IActionResult> GetLogs([FromQuery] PaginationParams @params, [FromQuery] Guid? branchId = null, [FromQuery] string? module = null)
         {
             var userRole = User.FindFirst(ClaimTypes.Role)?.Value;
             var userBranchIdStr = User.FindFirst("branchId")?.Value;
@@ -32,50 +33,38 @@ namespace RestaurantApp.API.Modules.Audit.Controllers
 
             var query = _ctx.AuditLogs.AsQueryable();
 
-            // Luôn lọc theo RestaurantId để đảm bảo an toàn dữ liệu
             if (restaurantId.HasValue)
-            {
                 query = query.Where(l => l.RestaurantId == restaurantId.Value);
-            }
 
-            // Phân quyền theo Role và lọc theo BranchId yêu cầu
             if (userRole?.ToLower() != "owner")
-            {
-                // Manager/Staff chỉ xem được chi nhánh của mình
                 query = query.Where(l => l.BranchId == userBranchId);
-            }
             else if (branchId.HasValue)
-            {
-                // Owner có thể xem tất cả, hoặc lọc theo chi nhánh cụ thể nếu chọn
                 query = query.Where(l => l.BranchId == branchId.Value);
-            }
 
             if (!string.IsNullOrEmpty(module))
                 query = query.Where(l => l.Module == module);
 
-            if (!string.IsNullOrEmpty(search))
-                query = query.Where(l => l.Action.Contains(search) || l.Module.Contains(search));
+            if (!string.IsNullOrEmpty(@params.Search))
+                query = query.Where(l => l.Action.Contains(@params.Search) || l.Module.Contains(@params.Search));
 
             var result = await query
                 .OrderByDescending(l => l.CreatedAt)
-                .Skip((page - 1) * pageSize)
-                .Take(pageSize)
-                .Select(l => new {
-                    l.Id,
-                    l.UserId,
-                    l.BranchId,
-                    l.RestaurantId,
+                .Select(l => new AuditLogDto {
+                    Id = l.Id,
+                    UserId = l.UserId,
+                    BranchId = l.BranchId,
+                    RestaurantId = l.RestaurantId,
                     UserName = _ctx.Users.Where(u => u.Id == l.UserId).Select(u => u.FullName).FirstOrDefault() ?? "Hệ thống",
-                    l.Action,
-                    l.Module,
-                    l.TargetId,
-                    l.OldData,
-                    l.NewData,
-                    l.IpAddress,
-                    l.UserAgent,
-                    l.CreatedAt
+                    Action = l.Action,
+                    Module = l.Module,
+                    TargetId = l.TargetId,
+                    OldData = l.OldData,
+                    NewData = l.NewData,
+                    IpAddress = l.IpAddress,
+                    UserAgent = l.UserAgent,
+                    CreatedAt = l.CreatedAt
                 })
-                .ToListAsync();
+                .ToPagedResultAsync(@params.PageIndex, @params.PageSize);
 
             return Ok(result);
         }

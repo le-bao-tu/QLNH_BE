@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using RestaurantApp.API.Data;
 using RestaurantApp.API.Modules.Customer.Models;
+using RestaurantApp.API.Common;
 
 namespace RestaurantApp.API.Modules.Customer.Services
 {
@@ -16,6 +17,7 @@ namespace RestaurantApp.API.Modules.Customer.Services
     public interface ICustomerService
     {
         Task<List<CustomerDto>> GetByRestaurantAsync(Guid restaurantId, string? search = null);
+        Task<PagedResult<CustomerDto>> GetByRestaurantPagedAsync(Guid restaurantId, PaginationParams @params);
         Task<CustomerDto?> GetByIdAsync(Guid id);
         Task<CustomerDto?> GetByPhoneAsync(Guid restaurantId, string phone);
         Task<CustomerDto> CreateAsync(CreateCustomerDto dto);
@@ -35,6 +37,17 @@ namespace RestaurantApp.API.Modules.Customer.Services
             if (!string.IsNullOrWhiteSpace(search))
                 query = query.Where(c => c.FullName.Contains(search) || (c.Phone != null && c.Phone.Contains(search)));
             return await query.OrderByDescending(c => c.CreatedAt).Select(c => ToDto(c)).ToListAsync();
+        }
+
+        public async Task<PagedResult<CustomerDto>> GetByRestaurantPagedAsync(Guid restaurantId, PaginationParams @params)
+        {
+            var query = _ctx.Customers.Where(c => c.RestaurantId == restaurantId);
+            if (!string.IsNullOrWhiteSpace(@params.Search))
+                query = query.Where(c => c.FullName.Contains(@params.Search) || (c.Phone != null && c.Phone.Contains(@params.Search)));
+            
+            return await query.OrderByDescending(c => c.CreatedAt)
+                .Select(c => ToDto(c))
+                .ToPagedResultAsync(@params.PageIndex, @params.PageSize);
         }
 
         public async Task<CustomerDto?> GetByIdAsync(Guid id)

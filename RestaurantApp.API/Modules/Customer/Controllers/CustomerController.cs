@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using RestaurantApp.API.Modules.Customer.Services;
+using RestaurantApp.API.Common;
 
 namespace RestaurantApp.API.Modules.Customer.Controllers
 {
@@ -13,8 +14,12 @@ namespace RestaurantApp.API.Modules.Customer.Controllers
         public CustomerController(ICustomerService svc) => _svc = svc;
 
         [HttpGet("restaurant/{restaurantId}")]
-        public async Task<IActionResult> GetByRestaurant(Guid restaurantId, [FromQuery] string? search)
-            => Ok(await _svc.GetByRestaurantAsync(restaurantId, search));
+        public async Task<IActionResult> GetByRestaurant(Guid restaurantId, [FromQuery] PaginationParams @params)
+        {
+            if (@params.PageIndex > 0)
+                return Ok(await _svc.GetByRestaurantPagedAsync(restaurantId, @params));
+            return Ok(await _svc.GetByRestaurantAsync(restaurantId, @params.Search));
+        }
 
         [HttpGet("{id}")]
         public async Task<IActionResult> GetById(Guid id)

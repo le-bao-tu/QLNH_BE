@@ -7,6 +7,7 @@ namespace RestaurantApp.API.Modules.Table.Models
     {
         /// <summary>Chi nhánh sở hữu bàn</summary>
         public Guid BranchId { get; set; }
+        public Guid? RestaurantId { get; set; }
         public Branch.Models.Branch? Branch { get; set; }
 
         /// <summary>Số bàn hiển thị</summary>
